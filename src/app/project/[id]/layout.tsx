@@ -2,7 +2,7 @@
 "use client";
 
 import { useProjectStore } from "@/hooks/useProject";
-import TinkerChat from "@/components/chat/TinkerChat";
+
 import { Button } from "@/components/ui/button";
 import { Book, PenTool, LayoutGrid, Settings, ChevronLeft, ChevronRight, Menu } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
@@ -56,9 +56,6 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
             <div className="flex-1 flex flex-col overflow-hidden relative">
                 {children}
             </div>
-
-            {/* Right Chat Sidebar */}
-            {isSidebarOpen && <TinkerChat />}
         </div>
     );
 }
