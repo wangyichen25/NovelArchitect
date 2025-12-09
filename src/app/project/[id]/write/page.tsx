@@ -56,9 +56,13 @@ export default function WritePage() {
             order: scenes ? scenes.length : 0,
             metadata: {
                 status: 'draft',
-                wordCount: 0
+                wordCount: 0,
+                povCharacterId: null,
+                locationId: null,
+                timeOfDay: "Day"
             },
-            beats: ''
+            beats: '',
+            cachedMentions: []
         });
         setActiveScene(id);
     };

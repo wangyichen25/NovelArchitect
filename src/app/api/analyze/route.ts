@@ -100,7 +100,7 @@ export async function POST(req: Request) {
             3. Must Include: Physical features, Clothing, Scene Environment, Lighting, and the current Act/Story Context (e.g. 'tense standoff', 'joyful reunion').
             4. Append the Global Background (Genre, Era, Culture, Art Style).
             5. CRITICAL: DO NOT include the Book Title, Chapter Name, or specific Scene Name.
-            6. Start with: "Create image based on text: "
+            6. Start with: "masterpiece, best quality, good quality, very aesthetic, absurdres, newest, 8K, depth of field, focused subject, close up, stylized, dynamic angle,"
             
             Text:
             """
