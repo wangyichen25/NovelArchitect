@@ -2,6 +2,7 @@
 "use client";
 
 import { useChat } from '@ai-sdk/react';
+interface Message { id: string; role: string; content: string; }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -40,48 +41,7 @@ export default function TinkerChat() {
         init();
     }, [novelId]);
 
-    const { messages } = useChat({
-        api: '/api/chat',
-        body: async () => {
-            // ... (same logic, just confirming body is used by messages fetch? actually useChat fetches on submit. 
-            // If we remove submit, useChat might just be used for initial messages? 
-            // Wait, if I remove input, how do we use it? 
-            // The user wanted to remove the "Ask AI" bar.
-            // If they can't ask, useChat is useless unless it's just for display?
-            // Yes, user likely wants a read-only log or just removed the manual input.
-            // So removing input/handleSubmit is correct.
-
-            // ... existing body code ...
-
-            // RAG logic
-            let scene: any = { content: {}, metadata: { povCharacterId: null, timeOfDay: '' }, beats: '' };
-            if (activeSceneId) {
-                scene = await db.scenes.get(activeSceneId) || scene;
-            }
-
-            const provider = localStorage.getItem('novel-architect-provider') || 'openai';
-            const model = localStorage.getItem(`novel-architect-model-${provider}`);
-
-            // 3. Orchestrate
-            // Note: input is gone from scope if I remove it from destructuring.
-            // But orchestrator uses `input`. 
-            // If we are not submitting, this body function never runs for *new* messages?
-            // Existing messages are loaded? useChat doesn't load history by default unless `initialMessages` passed.
-            // It seems TinkerChat is just for "Ask AI". If bar is gone, TinkerChat is dead?
-            // The user said "remove the whole 'ask AI for help' bar". 
-            // Maybe they just want the history? Or maybe they want to hide the input?
-
-            return {
-                provider,
-                model,
-                context: "", // No context needed if no input?
-                novelId,
-                activeSceneId
-            }
-        },
-        headers: {
-        }
-    });
+    const { messages } = useChat() as unknown as { messages: Message[] };
 
     // Helper to safety check scene
     const filters = (s: any) => s || { content: "", metadata: {}, beats: "" };

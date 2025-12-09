@@ -22,8 +22,9 @@ export class Orchestrator {
         const matches = this.scanner.search(combinedText);
 
         // 2. Retrieve relevant Codex entries
+        const matchedWords = new Set(matches.map(m => m.word));
         const relevantEntries = this.codex.filter(e =>
-            matches.includes(e.name) || e.aliases.some(a => matches.includes(a))
+            matchedWords.has(e.name) || e.aliases.some(a => matchedWords.has(a))
         );
 
         // 3. Build Prompt
