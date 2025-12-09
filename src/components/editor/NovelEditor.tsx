@@ -201,28 +201,45 @@ export default function NovelEditor({ initialContent, onUpdate, sceneId }: Novel
             }
 
             // 1. Retrieve & Decrypt Key
-            const provider = localStorage.getItem('novel-architect-provider') || 'openai';
-            const model = localStorage.getItem(`novel-architect-model-${provider}`);
+            // PRIORITY: Synced Project Settings > Local Global Settings
+            let provider = localStorage.getItem('novel-architect-provider') || 'openai';
+            let model = localStorage.getItem(`novel-architect-model-${provider}`);
             let apiKey = '';
 
-            if (provider !== 'ollama') {
-                const encrypted = localStorage.getItem(`novel-architect-key-${provider}`);
-                const pin = localStorage.getItem('novel-architect-pin-hash'); // Insecure usage for prototype convenience
+            // Try to load from Project Settings
+            const novel = await db.novels.get(novelId);
+            if (novel && novel.settings) {
+                if (novel.settings.aiProvider) provider = novel.settings.aiProvider;
+                if (novel.settings.activeAiModel) model = novel.settings.activeAiModel;
+            }
 
-                if (encrypted && pin) {
-                    const decrypted = await KeyChain.decrypt(encrypted, pin);
+            if (provider !== 'ollama') {
+                // Key Retrieval Logic
+                const pin = localStorage.getItem('novel-architect-pin-hash');
+
+                // 1. Check Synced Encrypted Key
+                if (novel && novel.settings?.apiKey && pin) {
+                    const decrypted = await KeyChain.decrypt(novel.settings.apiKey, pin);
                     if (decrypted) apiKey = decrypted;
                 }
 
+                // 2. Fallback to Local Storage Key if no synced key or decryption failed
                 if (!apiKey) {
-                    alert("Could not decrypt API Key. Please ensure you have set it in Settings.");
+                    const encrypted = localStorage.getItem(`novel-architect-key-${provider}`);
+                    if (encrypted && pin) {
+                        const decrypted = await KeyChain.decrypt(encrypted, pin);
+                        if (decrypted) apiKey = decrypted;
+                    }
+                }
+
+                if (!apiKey) {
+                    alert("Could not decrypt API Key. Please ensure you have set it in Settings and your PIN matches.");
                     setIsAnalyzing(false);
                     return;
                 }
             }
 
             // 1a. Fetch Global Context (Novel Title + Act Summaries)
-            const novel = await db.novels.get(novelId);
             const acts = await db.acts.where({ novelId }).sortBy('order');
 
             let globalContext = "";
@@ -403,16 +420,33 @@ export default function NovelEditor({ initialContent, onUpdate, sceneId }: Novel
 
         setIsAnalyzing(true);
         try {
-            // 1. Retrieve Config (reuse logic - should be extracted to hook/util really)
-            const provider = localStorage.getItem('novel-architect-provider') || 'openai';
-            const model = localStorage.getItem(`novel-architect-model-${provider}`);
+            // 1. Retrieve Config (Synced > Local)
+            let provider = localStorage.getItem('novel-architect-provider') || 'openai';
+            let model = localStorage.getItem(`novel-architect-model-${provider}`);
             let apiKey = '';
+
+            // Try to load from Project Settings
+            const novel = await db.novels.get(novelId);
+            if (novel && novel.settings) {
+                if (novel.settings.aiProvider) provider = novel.settings.aiProvider;
+                if (novel.settings.activeAiModel) model = novel.settings.activeAiModel;
+            }
+
             if (provider !== 'ollama') {
-                const encrypted = localStorage.getItem(`novel-architect-key-${provider}`);
                 const pin = localStorage.getItem('novel-architect-pin-hash');
-                if (encrypted && pin) {
-                    const decrypted = await KeyChain.decrypt(encrypted, pin);
+
+                // 1. Check Synced Encrypted Key
+                if (novel && novel.settings?.apiKey && pin) {
+                    const decrypted = await KeyChain.decrypt(novel.settings.apiKey, pin);
                     if (decrypted) apiKey = decrypted;
+                }
+
+                if (!apiKey) {
+                    const encrypted = localStorage.getItem(`novel-architect-key-${provider}`);
+                    if (encrypted && pin) {
+                        const decrypted = await KeyChain.decrypt(encrypted, pin);
+                        if (decrypted) apiKey = decrypted;
+                    }
                 }
             }
 
@@ -423,7 +457,7 @@ export default function NovelEditor({ initialContent, onUpdate, sceneId }: Novel
                 return `- ${e.name}${aliases} [${e.category}]`;
             }).join('\n');
 
-            const novel = await db.novels.get(novelId);
+            // const novel = await db.novels.get(novelId); // Already fetched
             let globalContext = novel ? `Novel: ${novel.title}` : "";
 
             // 2. Call Selection API
@@ -619,26 +653,34 @@ export default function NovelEditor({ initialContent, onUpdate, sceneId }: Novel
 
         setIsAnalyzing(true); // Reuse loading state
         try {
-            const provider = localStorage.getItem('novel-architect-provider') || 'openai';
-            const model = localStorage.getItem(`novel-architect-model-${provider}`);
-            // We need Key passing logic here too similar to Analyze, but for brevity/prototype:
-            // I'll copy the key retrieval logic or assume the API handles it (it doesn't, I need to send it).
-            // NOTE: The route I just wrote didn't check for headers! 
-            // I should update the route to check headers or just pass key in body from here? 
-            // The route uses standard AI SDK which depends on ENV vars usually, but I want BYOK.
-            // I'll grab the key here and pass it in body for now as 'apiKey' property (need to update route to use it?).
-            // Wait, standard AI SDK doesn't take key in `generateText` options easily unless I instantiate provider with it.
-            // My route implementation instantiated provider *inside* the handler.
-            // I need to update the route to accept key.
-
-            // Let's implement the FE logic assuming route will take 'apiKey'.
+            // PRIORITY: Synced Project Settings > Local Global Settings
+            let provider = localStorage.getItem('novel-architect-provider') || 'openai';
+            let model = localStorage.getItem(`novel-architect-model-${provider}`);
             let apiKey = '';
+
+            // Try to load from Project Settings
+            const novel = await db.novels.get(novelId);
+            if (novel && novel.settings) {
+                if (novel.settings.aiProvider) provider = novel.settings.aiProvider;
+                if (novel.settings.activeAiModel) model = novel.settings.activeAiModel;
+            }
+
             if (provider !== 'ollama') {
-                const encrypted = localStorage.getItem(`novel-architect-key-${provider}`);
                 const pin = localStorage.getItem('novel-architect-pin-hash');
-                if (encrypted && pin) {
-                    const decrypted = await KeyChain.decrypt(encrypted, pin);
+
+                // 1. Check Synced Encrypted Key
+                if (novel && novel.settings?.apiKey && pin) {
+                    const decrypted = await KeyChain.decrypt(novel.settings.apiKey, pin);
                     if (decrypted) apiKey = decrypted;
+                }
+
+                // 2. Fallback to Local Storage Key
+                if (!apiKey) {
+                    const encrypted = localStorage.getItem(`novel-architect-key-${provider}`);
+                    if (encrypted && pin) {
+                        const decrypted = await KeyChain.decrypt(encrypted, pin);
+                        if (decrypted) apiKey = decrypted;
+                    }
                 }
             }
 
@@ -684,15 +726,34 @@ export default function NovelEditor({ initialContent, onUpdate, sceneId }: Novel
 
         setIsAnalyzing(true);
         try {
-            const provider = localStorage.getItem('novel-architect-provider') || 'openai';
-            const model = localStorage.getItem(`novel-architect-model-${provider}`);
+            // PRIORITY: Synced Project Settings > Local Global Settings
+            let provider = localStorage.getItem('novel-architect-provider') || 'openai';
+            let model = localStorage.getItem(`novel-architect-model-${provider}`);
             let apiKey = '';
+
+            // Try to load from Project Settings
+            const novel = await db.novels.get(novelId);
+            if (novel && novel.settings) {
+                if (novel.settings.aiProvider) provider = novel.settings.aiProvider;
+                if (novel.settings.activeAiModel) model = novel.settings.activeAiModel;
+            }
+
             if (provider !== 'ollama') {
-                const encrypted = localStorage.getItem(`novel-architect-key-${provider}`);
                 const pin = localStorage.getItem('novel-architect-pin-hash');
-                if (encrypted && pin) {
-                    const decrypted = await KeyChain.decrypt(encrypted, pin);
+
+                // 1. Check Synced Encrypted Key
+                if (novel && novel.settings?.apiKey && pin) {
+                    const decrypted = await KeyChain.decrypt(novel.settings.apiKey, pin);
                     if (decrypted) apiKey = decrypted;
+                }
+
+                // 2. Fallback to Local Storage Key
+                if (!apiKey) {
+                    const encrypted = localStorage.getItem(`novel-architect-key-${provider}`);
+                    if (encrypted && pin) {
+                        const decrypted = await KeyChain.decrypt(encrypted, pin);
+                        if (decrypted) apiKey = decrypted;
+                    }
                 }
             }
 

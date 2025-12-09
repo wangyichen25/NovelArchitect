@@ -289,9 +289,10 @@ export default function ProjectDashboard() {
     return (
         <div className="flex flex-col gap-8">
             {/* Header / Auth */}
-            <div className="flex justify-between items-center bg-zinc-100 dark:bg-zinc-900 p-4 rounded-lg">
+            <div className="flex justify-between items-center pb-4 border-b mb-8">
                 <div>
-                    <h2 className="text-lg font-semibold">My Workspace</h2>
+                    <h2 className="text-2xl font-semibold tracking-tight">My Workspace</h2>
+                    <p className="text-sm text-muted-foreground">Manage your novels and writing projects</p>
                 </div>
                 <div className="flex items-center gap-4">
                     {authLoading ? (
@@ -337,22 +338,24 @@ export default function ProjectDashboard() {
                         ref={fileInputRef}
                         onChange={handleImport}
                     />
-                    <Button variant="outline" onClick={() => fileInputRef.current?.click()} className="w-full md:w-auto">
+                    <Button variant="secondary" onClick={() => fileInputRef.current?.click()} className="w-full md:w-auto">
                         <Upload className="mr-2 h-4 w-4" /> Import Project
                     </Button>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {novels?.map((novel) => (
                     <div
                         key={novel.id}
-                        className="p-6 border rounded-lg hover:border-primary cursor-pointer transition-all bg-card text-card-foreground shadow-sm flex flex-col justify-between h-40 group"
+                        className="p-6 border rounded-xl hover:border-primary/50 cursor-pointer transition-all duration-300 bg-card text-card-foreground shadow-sm hover:shadow-md hover:-translate-y-1 flex flex-col justify-between h-48 group relative"
                         onClick={() => router.push(`/project/${novel.id}`)}
                     >
                         <div>
-                            <h3 className="text-xl font-bold font-serif mb-2">{novel.title}</h3>
-                            <p className="text-sm text-muted-foreground">Last edited: {new Date(novel.lastModified).toLocaleDateString()}</p>
+                            <h3 className="text-xl font-bold font-serif mb-2 line-clamp-2">{novel.title}</h3>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">
+                                Last edited: {new Date(novel.lastModified).toLocaleDateString()}
+                            </p>
                         </div>
                         <div className="flex justify-end opacity-0 group-hover:opacity-100 transition-opacity gap-2">
                             <Button variant="ghost" size="icon" onClick={(e) => exportNovel(e, novel.id)} title="Export">

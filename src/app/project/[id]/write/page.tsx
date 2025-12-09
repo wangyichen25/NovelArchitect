@@ -3,11 +3,11 @@
 
 import NovelEditor from "@/components/editor/NovelEditor";
 import { useParams } from "next/navigation";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { db } from "@/lib/db";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useProjectStore } from "@/hooks/useProject";
-import { Scene } from "@/lib/db/schema";
+import { Scene, Act, Chapter } from "@/lib/db/schema";
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from "@/components/ui/button";
 import { Plus, Save, ChevronLeft, ChevronRight } from "lucide-react";
@@ -17,6 +17,7 @@ export default function WritePage() {
     const novelId = params.id as string;
     const { activeSceneId, setActiveScene } = useProjectStore();
     const [status, setStatus] = useState<"saved" | "saving" | "unsaved">("saved");
+    const saveTimeoutRef = useRef<NodeJS.Timeout>(null);
 
     // Fetch all scenes for this novel to show selector
     const scenes = useLiveQuery(
@@ -78,12 +79,44 @@ export default function WritePage() {
     }, [activeSceneId, novelId, novel]);
 
     const createNewScene = async () => {
+        // 1. Find or Create Act
+        let actId = '';
+        const acts = await db.acts.where({ novelId }).toArray();
+        if (acts.length > 0) {
+            actId = acts[0].id;
+        } else {
+            actId = uuidv4();
+            await db.acts.add({
+                id: actId,
+                novelId,
+                title: 'Act 1',
+                order: 0,
+                summary: ''
+            });
+        }
+
+        // 2. Find or Create Chapter
+        let chapterId = '';
+        // Find chapters for this act
+        const chapters = await db.chapters.where({ actId }).toArray();
+        if (chapters.length > 0) {
+            chapterId = chapters[0].id;
+        } else {
+            chapterId = uuidv4();
+            await db.chapters.add({
+                id: chapterId,
+                actId,
+                title: 'Chapter 1',
+                order: 0,
+                summary: ''
+            });
+        }
+
         const id = uuidv4();
-        // create a default chapter if needed, but for now just null chapterId
         await db.scenes.add({
             id,
             novelId,
-            chapterId: 'default', // placeholder
+            chapterId,
             title: 'Untitled Scene',
             content: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Start writing here...' }] }] },
             order: scenes ? scenes.length : 0,
@@ -100,24 +133,31 @@ export default function WritePage() {
         setActiveScene(id);
     };
 
-    const handleUpdate = useCallback(async (content: any) => {
+    const handleUpdate = useCallback((content: any) => {
         if (!activeSceneId) return;
         setStatus("saving");
-        try {
-            // Caluclate word count (naive)
-            const text = JSON.stringify(content);
-            const wordCount = text.length / 5; // Very rough approx
 
-            await db.scenes.update(activeSceneId, {
-                content,
-                lastModified: Date.now(),
-                // partial update metadata?
-            });
-            setStatus("saved");
-        } catch (e) {
-            console.error(e);
-            setStatus("unsaved");
+        if (saveTimeoutRef.current) {
+            clearTimeout(saveTimeoutRef.current);
         }
+
+        saveTimeoutRef.current = setTimeout(async () => {
+            try {
+                // Caluclate word count (naive)
+                const text = JSON.stringify(content);
+                const wordCount = text.length / 5; // Very rough approx
+
+                await db.scenes.update(activeSceneId, {
+                    content,
+                    lastModified: Date.now(),
+                    // partial update metadata?
+                });
+                setStatus("saved");
+            } catch (e) {
+                console.error(e);
+                setStatus("unsaved");
+            }
+        }, 1000);
     }, [activeSceneId]);
 
     // Calculate previous/next scenes
