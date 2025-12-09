@@ -32,6 +32,8 @@ export async function POST(req: Request) {
         return new Response(JSON.stringify({ error: "Invalid provider" }), { status: 400 });
     }
 
+    const visualSummaryField = z.string().describe("Detailed visual description for image generation.").optional();
+
     const schema = z.object({
         characters: z.array(z.object({
             name: z.string(),
@@ -41,7 +43,7 @@ export async function POST(req: Request) {
                 target: z.string(),
                 relationship: z.string()
             })).optional(),
-            visualSummary: z.string().describe("Extracted sentences from the original text that describe visual appearance.").optional()
+            visualSummary: visualSummaryField
         })).optional(),
         locations: z.array(z.object({
             name: z.string(),
@@ -51,7 +53,7 @@ export async function POST(req: Request) {
                 target: z.string(),
                 relationship: z.string()
             })).optional(),
-            visualSummary: z.string().describe("Extracted sentences from the original text that describe visual appearance.").optional()
+            visualSummary: visualSummaryField
         })).optional(),
         objects: z.array(z.object({
             name: z.string(),
@@ -61,7 +63,7 @@ export async function POST(req: Request) {
                 target: z.string(),
                 relationship: z.string()
             })).optional(),
-            visualSummary: z.string().describe("Extracted sentences from the original text that describe visual appearance.").optional()
+            visualSummary: visualSummaryField
         })).describe("List of items, artifacts, or significant objects.").optional(),
         lore: z.array(z.object({
             name: z.string(),
@@ -71,7 +73,7 @@ export async function POST(req: Request) {
                 target: z.string(),
                 relationship: z.string()
             })).optional(),
-            visualSummary: z.string().describe("Extracted sentences from the original text that describe visual appearance.").optional()
+            visualSummary: visualSummaryField
         })).describe("List of history, magic systems, religion, or world-building concepts.").optional()
     });
 
