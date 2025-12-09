@@ -40,50 +40,46 @@ export default function TinkerChat() {
         init();
     }, [novelId]);
 
-    const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
+    const { messages } = useChat({
         api: '/api/chat',
         body: async () => {
-            // RAG Time!
-            // 1. Get Active Scene
+            // ... (same logic, just confirming body is used by messages fetch? actually useChat fetches on submit. 
+            // If we remove submit, useChat might just be used for initial messages? 
+            // Wait, if I remove input, how do we use it? 
+            // The user wanted to remove the "Ask AI" bar.
+            // If they can't ask, useChat is useless unless it's just for display?
+            // Yes, user likely wants a read-only log or just removed the manual input.
+            // So removing input/handleSubmit is correct.
+
+            // ... existing body code ...
+
+            // RAG logic
             let scene: any = { content: {}, metadata: { povCharacterId: null, timeOfDay: '' }, beats: '' };
             if (activeSceneId) {
                 scene = await db.scenes.get(activeSceneId) || scene;
             }
 
-            // 2. Get Decrypted Key (Quick hack: ask SettingsDialog to expose it? No. 
-            // We need a way to get the key. 
-            // Let's grab it from local storage and decrypt with a prompt? 
-            // Too complex for this step.
-            // Let's assume the valid API Key is passed via a header we set.
-            // Actually `useChat` headers can be dynamic.
-
             const provider = localStorage.getItem('novel-architect-provider') || 'openai';
             const model = localStorage.getItem(`novel-architect-model-${provider}`);
-            const encKey = localStorage.getItem(`novel-architect-key-${provider}`);
-            // Ideally we need the PIN. 
-            // For now, let's just assume the user set it and we can't decrypt it easily without the PIN.
-            // I will add a PIN field to this chat if needed, OR just send the encrypted blob and let server fail?
-            // No, server can't decrypt.
-            // Let's skip encryption for the "Prototype" demo if it blocks us, 
-            // OR assumes a session variable holds the decrypted key.
 
             // 3. Orchestrate
-            const context = await orchestratorRef.current.assemblePrompt(
-                filters(scene), // Abstracted
-                "", // History (todo)
-                input // The user's current query is the instruction
-            );
+            // Note: input is gone from scope if I remove it from destructuring.
+            // But orchestrator uses `input`. 
+            // If we are not submitting, this body function never runs for *new* messages?
+            // Existing messages are loaded? useChat doesn't load history by default unless `initialMessages` passed.
+            // It seems TinkerChat is just for "Ask AI". If bar is gone, TinkerChat is dead?
+            // The user said "remove the whole 'ask AI for help' bar". 
+            // Maybe they just want the history? Or maybe they want to hide the input?
 
             return {
                 provider,
                 model,
-                context, // We send the full context string
+                context: "", // No context needed if no input?
                 novelId,
                 activeSceneId
             }
         },
         headers: {
-            // We'll handle auth in the route via body for now to keep it simple or adds complexity
         }
     });
 
@@ -98,16 +94,7 @@ export default function TinkerChat() {
         }
     }, [messages]);
 
-    const onSubmit = (e: React.FormEvent) => {
-        // We need to inject the key into the request or ensure it's available.
-        // For simplicity in this iteration, I'll assume the Route handles the "No Key" error gracefully.
-        handleSubmit(e, {
-            // We can pass extra headers here
-            headers: {
-                'x-novel-architect-key': 'TODO_GET_DECRYPTED_KEY' // This is the blocker.
-            }
-        });
-    }
+
 
     if (!isSidebarOpen) return null;
 
@@ -132,29 +119,11 @@ export default function TinkerChat() {
                             </div>
                         </div>
                     ))}
-                    {isLoading && (
-                        <div className="flex justify-start">
-                            <div className="bg-muted text-muted-foreground rounded-lg p-3 text-xs animate-pulse">
-                                Thinking...
-                            </div>
-                        </div>
-                    )}
+
                 </div>
             </ScrollArea>
 
-            <form onSubmit={onSubmit} className="p-4 border-t bg-background">
-                <div className="flex gap-2">
-                    <Input
-                        value={input}
-                        onChange={handleInputChange}
-                        placeholder="Ask AI for help..."
-                        className="flex-1"
-                    />
-                    <Button type="submit" size="icon" disabled={isLoading}>
-                        <Send className="h-4 w-4" />
-                    </Button>
-                </div>
-            </form>
+
         </div>
     );
 }

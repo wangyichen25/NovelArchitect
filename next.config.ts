@@ -10,6 +10,10 @@ const withPWA = withPWAInit({
 
 const nextConfig: NextConfig = {
   /* config options here */
+  devIndicators: {
+    appIsrStatus: false,
+    buildActivity: false,
+  },
   experimental: {
     // missing turbo in types? next 16 is new.
   }
