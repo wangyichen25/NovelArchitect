@@ -50,5 +50,5 @@ export async function POST(req: Request) {
         messages: allMessages,
     });
 
-    return result.toDataStreamResponse();
+    return result.toTextStreamResponse();
 }
