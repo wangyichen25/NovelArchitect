@@ -228,19 +228,19 @@ export default function ProjectDashboard() {
 
     return (
         <div className="flex flex-col gap-8">
-            <div className="flex items-center gap-4 justify-between">
-                <div className="flex items-center gap-4 flex-1">
+            <div className="flex flex-col md:flex-row items-center gap-4 justify-between">
+                <div className="flex flex-col md:flex-row items-center gap-4 flex-1 w-full md:w-auto">
                     <Input
                         placeholder="New Novel Project Title..."
                         value={newTitle}
                         onChange={(e) => setNewTitle(e.target.value)}
-                        className="max-w-md"
+                        className="w-full md:max-w-md"
                     />
-                    <Button onClick={createNovel}>
+                    <Button onClick={createNovel} className="w-full md:w-auto">
                         <Plus className="mr-2 h-4 w-4" /> Create Project
                     </Button>
                 </div>
-                <div>
+                <div className="w-full md:w-auto flex justify-center md:justify-end">
                     <input
                         type="file"
                         accept=".narch,.txt,.md,.docx"
@@ -248,7 +248,7 @@ export default function ProjectDashboard() {
                         ref={fileInputRef}
                         onChange={handleImport}
                     />
-                    <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+                    <Button variant="outline" onClick={() => fileInputRef.current?.click()} className="w-full md:w-auto">
                         <Upload className="mr-2 h-4 w-4" /> Import Project
                     </Button>
                 </div>

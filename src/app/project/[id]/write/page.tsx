@@ -111,7 +111,7 @@ export default function WritePage() {
                     <select
                         value={activeSceneId || ''}
                         onChange={(e) => setActiveScene(e.target.value)}
-                        className="h-8 rounded-md border-none bg-transparent text-foreground px-3 text-sm font-medium focus:outline-none cursor-pointer hover:bg-accent/50"
+                        className="h-8 rounded-md border-none bg-transparent text-foreground px-3 text-sm font-medium focus:outline-none cursor-pointer hover:bg-accent/50 max-w-[150px] md:max-w-xs truncate"
                     >
                         {scenes?.map(s => <option key={s.id} value={s.id} className="bg-background text-foreground">{s.title}</option>)}
                     </select>
