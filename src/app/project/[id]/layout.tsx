@@ -3,6 +3,7 @@
 
 import { useProjectStore } from "@/hooks/useProject";
 
+import SettingsDialog from "@/components/settings-dialog";
 import { Button } from "@/components/ui/button";
 import { Book, PenTool, LayoutGrid, Settings, ChevronLeft, ChevronRight, Menu } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
@@ -46,6 +47,8 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
                         <item.icon className="h-5 w-5" />
                     </Button>
                 ))}
+                <div className="flex-1" />
+                <SettingsDialog />
             </div>
 
             {/* Main Content Area */}

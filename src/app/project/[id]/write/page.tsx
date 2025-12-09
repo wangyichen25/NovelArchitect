@@ -10,7 +10,7 @@ import { useProjectStore } from "@/hooks/useProject";
 import { Scene } from "@/lib/db/schema";
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from "@/components/ui/button";
-import { Plus, Save } from "lucide-react";
+import { Plus, Save, ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function WritePage() {
     const params = useParams();
@@ -87,12 +87,27 @@ export default function WritePage() {
         }
     }, [activeSceneId]);
 
+    // Calculate previous/next scenes
+    const activeSceneIndex = scenes?.findIndex(s => s.id === activeSceneId) ?? -1;
+    const prevSceneId = activeSceneIndex > 0 ? scenes?.[activeSceneIndex - 1]?.id : null;
+    const nextSceneId = activeSceneIndex !== -1 && activeSceneIndex < (scenes?.length ?? 0) - 1 ? scenes?.[activeSceneIndex + 1]?.id : null;
+
     return (
         <div className="flex flex-col h-full bg-background relative">
             {/* Simple Scene Toolbar */}
-            {/* Simple Scene Toolbar */}
             <div className="p-2 flex items-center justify-between transition-opacity hover:opacity-100 opacity-50 focus-within:opacity-100">
                 <div className="flex items-center gap-2">
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => prevSceneId && setActiveScene(prevSceneId)}
+                        disabled={!prevSceneId}
+                        className="h-8 w-8 p-0"
+                        title="Previous Scene"
+                    >
+                        <ChevronLeft className="h-4 w-4" />
+                    </Button>
+
                     <select
                         value={activeSceneId || ''}
                         onChange={(e) => setActiveScene(e.target.value)}
@@ -100,6 +115,20 @@ export default function WritePage() {
                     >
                         {scenes?.map(s => <option key={s.id} value={s.id} className="bg-background text-foreground">{s.title}</option>)}
                     </select>
+
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => nextSceneId && setActiveScene(nextSceneId)}
+                        disabled={!nextSceneId}
+                        className="h-8 w-8 p-0"
+                        title="Next Scene"
+                    >
+                        <ChevronRight className="h-4 w-4" />
+                    </Button>
+
+                    <div className="w-[1px] h-4 bg-border mx-1" />
+
                     <Button size="sm" variant="ghost" onClick={createNewScene} className="h-8 w-8 p-0" title="New Scene">
                         <Plus className="h-4 w-4" />
                     </Button>
