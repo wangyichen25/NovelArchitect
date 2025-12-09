@@ -10,7 +10,7 @@ import { useParams } from 'next/navigation';
 import { db } from '@/lib/db';
 import { AhoCorasick } from '@/lib/ai/scanner';
 import { Button } from '@/components/ui/button';
-import { ScanSearch, Sparkles, Loader2, PenTool, RefreshCw } from 'lucide-react';
+import { ScanSearch, Sparkles, Loader2, PenTool, RefreshCw, BookPlus } from 'lucide-react';
 import { KeyChain } from '@/lib/ai/keychain';
 import { v4 as uuidv4 } from 'uuid';
 import { EntityMark } from '@/components/editor/extensions/EntityMark';
@@ -31,7 +31,7 @@ export default function NovelEditor({ initialContent, onUpdate, sceneId }: Novel
     const [hoveredEntity, setHoveredEntity] = useState<{ id: string; name: string; description: string; category: string; image?: string; x: number; y: number } | null>(null);
     const [isBubbleMenuOpen, setIsBubbleMenuOpen] = useState(false);
     const [bubbleMenuPos, setBubbleMenuPos] = useState({ x: 0, y: 0 });
-    const handlersRef = useRef({ analyze: () => { }, scan: () => { }, aiWrite: () => { }, aiRephrase: () => { } });
+    const handlersRef = useRef({ analyze: () => { }, scan: () => { }, aiWrite: () => { }, aiRephrase: () => { }, addCodex: () => { } });
 
     const editor = useEditor({
         extensions: [
@@ -189,13 +189,13 @@ export default function NovelEditor({ initialContent, onUpdate, sceneId }: Novel
 
     // ... (keep handleAnalyze same)
 
-    const handleAnalyze = async () => {
+    const performAnalysis = async (textToAnalyze: string) => {
         if (!editor || !novelId) return;
         setIsAnalyzing(true);
         try {
-            const text = editor.getText();
-            if (text.length < 50) {
-                alert("Please write a bit more content before analyzing (min 50 chars).");
+            const text = textToAnalyze;
+            if (text.length < 10) { // Lower limit for selection
+                alert("Selected text is too short for analysis.");
                 setIsAnalyzing(false);
                 return;
             }
@@ -337,7 +337,9 @@ export default function NovelEditor({ initialContent, onUpdate, sceneId }: Novel
                     }
 
                     if (changed) {
-                        updatedEntries.push(existing);
+                        if (!updatedEntries.includes(existing)) {
+                            updatedEntries.push(existing);
+                        }
                     }
                 } else {
                     // CREATE new
@@ -375,6 +377,143 @@ export default function NovelEditor({ initialContent, onUpdate, sceneId }: Novel
         } catch (e) {
             console.error(e);
             alert("Analysis failed. See console for details.");
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
+
+    const handleAnalyze = async () => {
+        if (!editor) return;
+        await performAnalysis(editor.getText());
+    };
+
+    const handleAddCodex = async () => {
+        if (!editor || !novelId) return;
+        const { from, to } = editor.state.selection;
+        if (from === to) {
+            alert("Please select some text to analyze.");
+            return;
+        }
+
+        const selection = editor.state.doc.textBetween(from, to, ' ');
+        // Get surrounding context (e.g. 1000 chars before and after)
+        const contextStart = Math.max(0, from - 1000);
+        const contextEnd = Math.min(editor.state.doc.content.size, to + 1000);
+        const context = editor.state.doc.textBetween(contextStart, contextEnd, '\n');
+
+        setIsAnalyzing(true);
+        try {
+            // 1. Retrieve Config (reuse logic - should be extracted to hook/util really)
+            const provider = localStorage.getItem('novel-architect-provider') || 'openai';
+            const model = localStorage.getItem(`novel-architect-model-${provider}`);
+            let apiKey = '';
+            if (provider !== 'ollama') {
+                const encrypted = localStorage.getItem(`novel-architect-key-${provider}`);
+                const pin = localStorage.getItem('novel-architect-pin-hash');
+                if (encrypted && pin) {
+                    const decrypted = await KeyChain.decrypt(encrypted, pin);
+                    if (decrypted) apiKey = decrypted;
+                }
+            }
+
+            // 1a. Fetch Context
+            const existingEntries = await db.codex.where({ novelId }).toArray();
+            const existingNamesList = existingEntries.map(e => {
+                const aliases = e.aliases && e.aliases.length > 0 ? ` (Aliases: ${e.aliases.join(', ')})` : '';
+                return `- ${e.name}${aliases} [${e.category}]`;
+            }).join('\n');
+
+            const novel = await db.novels.get(novelId);
+            let globalContext = novel ? `Novel: ${novel.title}` : "";
+
+            // 2. Call Selection API
+            const response = await fetch('/api/analyze/selection', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-novel-architect-key': apiKey
+                },
+                body: JSON.stringify({
+                    selection,
+                    context,
+                    provider,
+                    model,
+                    existingEntities: existingNamesList,
+                    globalContext
+                })
+            });
+
+            if (!response.ok) throw new Error("Selection analysis failed");
+            const result = await response.json();
+
+            if (result.entity) {
+                const e = result.entity;
+                const normalize = (s: string) => s.toLowerCase().trim();
+                const normName = normalize(e.name);
+
+                let targetEntry = existingEntries.find(ex => normalize(ex.name) === normName);
+
+                if (targetEntry) {
+                    // Update Existing
+                    let changed = false;
+                    // Check alias
+                    const currentAliases = new Set((targetEntry.aliases || []).map(normalize));
+                    // Add selection as alias if it's not the name
+                    if (normalize(selection) !== normName && !currentAliases.has(normalize(selection))) {
+                        targetEntry.aliases = [...(targetEntry.aliases || []), selection];
+                        changed = true;
+                    }
+                    if (e.aliases) {
+                        for (const a of e.aliases) {
+                            if (!currentAliases.has(normalize(a))) {
+                                targetEntry.aliases.push(a);
+                                changed = true;
+                            }
+                        }
+                    }
+
+                    // Merge Description
+                    if (e.description && !targetEntry.description.includes(e.description)) {
+                        targetEntry.description += "\n\n" + e.description;
+                        changed = true;
+                    }
+
+                    if (changed) {
+                        await db.codex.put(targetEntry);
+                        alert(`Updated Codex Entry: ${targetEntry.name}`);
+                    } else {
+                        alert(`Entity "${targetEntry.name}" found, but no new info to add.`);
+                    }
+
+                } else {
+                    // Create New
+                    const newEntry = {
+                        id: uuidv4(),
+                        novelId,
+                        category: e.category,
+                        name: e.name,
+                        description: e.description || '',
+                        aliases: e.aliases || [],
+                        relations: e.relations || [],
+                        visualSummary: e.visualSummary || ""
+                    };
+                    // Ensure selection is alias if different
+                    if (normalize(selection) !== normalize(e.name) && !newEntry.aliases.includes(selection)) {
+                        newEntry.aliases.push(selection);
+                    }
+
+                    await db.codex.add(newEntry);
+                    alert(`Created New Codex Entry: ${newEntry.name}`);
+                }
+
+                await handleScan();
+            } else {
+                alert("Could not identify an entity from selection.");
+            }
+
+        } catch (e) {
+            console.error(e);
+            alert("Failed to add to Codex.");
         } finally {
             setIsAnalyzing(false);
         }
@@ -476,7 +615,7 @@ export default function NovelEditor({ initialContent, onUpdate, sceneId }: Novel
 
         // Get some previous context
         const { from } = editor.state.selection;
-        const context = editor.state.doc.textBetween(Math.max(0, from - 1000), from, '\n');
+        const context = editor.state.doc.textBetween(Math.max(0, from - 1000), Math.min(editor.state.doc.content.size, from + 1000), '\n');
 
         setIsAnalyzing(true); // Reuse loading state
         try {
@@ -593,9 +732,10 @@ export default function NovelEditor({ initialContent, onUpdate, sceneId }: Novel
             analyze: handleAnalyze,
             scan: handleScan,
             aiWrite: handleAIWrite,
-            aiRephrase: handleAIRephrase
+            aiRephrase: handleAIRephrase,
+            addCodex: handleAddCodex
         };
-    }, [handleAnalyze, handleScan, handleAIWrite, handleAIRephrase]); // Depend on them (they are defined in-component so they change on render? No wait, strict mode?)
+    }, [handleAnalyze, handleScan, handleAIWrite, handleAIRephrase, handleAddCodex]); // Depend on them (they are defined in-component so they change on render? No wait, strict mode?)
     // Actually handleAnalyze etc are closures, they depend on `editor` etc. so they DO change.
     // The ref needs to be updated.
 
@@ -637,13 +777,21 @@ export default function NovelEditor({ initialContent, onUpdate, sceneId }: Novel
                         <RefreshCw className="w-3 h-3 mr-1" />
                         AI Rephrase
                     </Button>
+                    <div className="w-[1px] h-4 bg-border mx-1" />
+                    <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={(e) => {
+                        e.preventDefault();
+                        handleAddCodex();
+                    }}>
+                        <BookPlus className="w-3 h-3 mr-1" />
+                        Add Codex
+                    </Button>
                 </div>
             )}
 
             {/* Tooltip */}
             {hoveredEntity && (
                 <div
-                    className="fixed z-50 bg-popover text-popover-foreground px-3 py-2 rounded-md shadow-md border text-xs max-w-xs animate-in fade-in zoom-in-95"
+                    className="fixed z-50 bg-popover text-popover-foreground px-3 py-2 rounded-md shadow-md border text-xs max-w-sm animate-in fade-in zoom-in-95"
                     style={{
                         left: hoveredEntity.x,
                         top: hoveredEntity.y + 10, // Offset a bit
@@ -658,7 +806,7 @@ export default function NovelEditor({ initialContent, onUpdate, sceneId }: Novel
                         {hoveredEntity.name}
                         <span className="text-[10px] uppercase opacity-50 px-1 border rounded">{hoveredEntity.category}</span>
                     </div>
-                    <div className="mt-1 opacity-90 line-clamp-3">
+                    <div className="mt-1 opacity-90 line-clamp-[10]">
                         {hoveredEntity.description || "No description available."}
                     </div>
                 </div>

@@ -31,18 +31,51 @@ export default function WritePage() {
         [activeSceneId]
     );
 
-    // Initialize: If no scenes, create one. If no active scene, set first one.
-    // Initialize: If no scenes, create one. If no active scene, set first one.
-    // Also validate that the active scene belongs to THIS novel (handle persistence across projects)
+    // Live query for the novel to get settings
+    const novel = useLiveQuery(
+        async () => await db.novels.get(novelId),
+        [novelId]
+    );
+
+    // 1. On Load: detailed logic to restore session state from DB if available
     useEffect(() => {
-        if (activeScene && activeScene.novelId !== novelId) {
-            setActiveScene(null); // Reset if belonging to another novel
-        } else if (scenes && scenes.length === 0) {
-            createNewScene();
-        } else if (scenes && scenes.length > 0 && !activeSceneId) {
-            setActiveScene(scenes[0].id);
+        if (!novel || !scenes) return;
+
+        // If no active scene is set in store, try to use the one from DB settings
+        if (!activeSceneId && novel.settings?.lastActiveSceneId) {
+            // Verify it exists in current scenes list
+            if (scenes.some(s => s.id === novel.settings.lastActiveSceneId)) {
+                setActiveScene(novel.settings.lastActiveSceneId);
+                return;
+            }
         }
-    }, [scenes, activeSceneId, activeScene, novelId]);
+
+        // Fallbacks
+        if (scenes.length === 0) {
+            createNewScene();
+        } else if (!activeSceneId) {
+            setActiveScene(scenes[0].id);
+        } else if (activeSceneId && scenes.length > 0) {
+            // Check if active scene belongs to another novel (persistence cleanup)
+            const belongs = scenes.some(s => s.id === activeSceneId);
+            if (!belongs) {
+                setActiveScene(scenes[0].id);
+            }
+        }
+    }, [scenes, novel, activeSceneId]);
+
+    // 2. On Change: Persist active scene to DB settings
+    useEffect(() => {
+        if (!activeSceneId || !novel) return;
+
+        // Only update if changed
+        if (novel.settings?.lastActiveSceneId !== activeSceneId) {
+            db.novels.update(novelId, {
+                'settings.lastActiveSceneId': activeSceneId,
+                lastModified: Date.now()
+            });
+        }
+    }, [activeSceneId, novelId, novel]);
 
     const createNewScene = async () => {
         const id = uuidv4();

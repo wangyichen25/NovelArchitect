@@ -12,12 +12,72 @@ import { Plus, BookOpen, Trash2, Upload, Download } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 import { ExportService } from "@/lib/export";
 import * as mammoth from "mammoth";
+import { useUser } from "@/hooks/use-user";
+import { createClient } from "@/lib/supabase/client";
+import { uploadNovelToCloud, fetchUserNovels, downloadNovelFromCloud } from "@/lib/db/cloud";
+import { Cloud, LogIn, LogOut, RefreshCw } from "lucide-react";
+
 
 export default function ProjectDashboard() {
     const novels = useLiveQuery(() => db.novels.toArray());
     const [newTitle, setNewTitle] = useState("");
     const router = useRouter();
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const { user, loading: authLoading } = useUser();
+    const [syncing, setSyncing] = useState(false);
+
+    const handleLogin = () => router.push('/login');
+    const handleLogout = async () => {
+        const supabase = createClient();
+        await supabase.auth.signOut();
+        router.refresh(); // dependent on how useUser works, might need window.location.reload()
+    };
+
+    const handleCloudUpload = async (e: React.MouseEvent, id: string) => {
+        e.stopPropagation();
+        if (!user) return alert("Please login first");
+
+        try {
+            setSyncing(true);
+            await uploadNovelToCloud(id, user.id);
+            alert("Project uploaded to cloud successfully!");
+        } catch (err: any) {
+            alert("Upload failed: " + err.message);
+        } finally {
+            setSyncing(false);
+        }
+    };
+
+    const handleCloudSync = async () => {
+        if (!user) return;
+        try {
+            setSyncing(true);
+            const cloudNovels = await fetchUserNovels(user.id);
+            if (!cloudNovels || cloudNovels.length === 0) {
+                alert("No projects found in cloud.");
+                return;
+            }
+
+            // For now, just simplistic "Download All" or let user choose. 
+            // To keep UI simple, let's just attempt to download/update all.
+            // A better UI would be a dialog.
+            let count = 0;
+            for (const novel of cloudNovels) {
+                // Check if exists
+                const exists = await db.novels.get(novel.id);
+                if (!exists || confirm(`Overwrite local version of "${novel.title}"?`)) {
+                    await downloadNovelFromCloud(novel.id);
+                    count++;
+                }
+            }
+            alert(`Synced ${count} projects from cloud.`);
+        } catch (err: any) {
+            alert("Sync failed: " + err.message);
+        } finally {
+            setSyncing(false);
+        }
+    };
+
 
     const createNovel = async () => {
         if (!newTitle.trim()) return;
@@ -228,6 +288,35 @@ export default function ProjectDashboard() {
 
     return (
         <div className="flex flex-col gap-8">
+            {/* Header / Auth */}
+            <div className="flex justify-between items-center bg-zinc-100 dark:bg-zinc-900 p-4 rounded-lg">
+                <div>
+                    <h2 className="text-lg font-semibold">My Workspace</h2>
+                </div>
+                <div className="flex items-center gap-4">
+                    {authLoading ? (
+                        <span className="text-sm text-muted-foreground">Loading...</span>
+                    ) : user ? (
+                        <>
+                            <span className="text-sm text-muted-foreground hidden md:inline">
+                                {user.email?.replace('@novelarchitect.com', '')}
+                            </span>
+                            <Button variant="outline" size="sm" onClick={handleCloudSync} disabled={syncing}>
+                                <RefreshCw className={`mr-2 h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
+                                Sync Cloud
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={handleLogout}>
+                                <LogOut className="mr-2 h-4 w-4" /> Logout
+                            </Button>
+                        </>
+                    ) : (
+                        <Button size="sm" onClick={handleLogin}>
+                            <LogIn className="mr-2 h-4 w-4" /> Login
+                        </Button>
+                    )}
+                </div>
+            </div>
+
             <div className="flex flex-col md:flex-row items-center gap-4 justify-between">
                 <div className="flex flex-col md:flex-row items-center gap-4 flex-1 w-full md:w-auto">
                     <Input
@@ -269,6 +358,11 @@ export default function ProjectDashboard() {
                             <Button variant="ghost" size="icon" onClick={(e) => exportNovel(e, novel.id)} title="Export">
                                 <Download className="h-4 w-4" />
                             </Button>
+                            {user && (
+                                <Button variant="ghost" size="icon" onClick={(e) => handleCloudUpload(e, novel.id)} title="Upload to Cloud" disabled={syncing}>
+                                    <Cloud className="h-4 w-4" />
+                                </Button>
+                            )}
                             <Button variant="ghost" size="icon" onClick={(e) => deleteNovel(e, novel.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10">
                                 <Trash2 className="h-4 w-4" />
                             </Button>

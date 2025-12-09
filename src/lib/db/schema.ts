@@ -10,9 +10,11 @@ export interface Novel {
 
 export interface ProjectSettings {
     theme: 'light' | 'dark' | 'system';
-    aiProvider: 'openai' | 'anthropic' | 'ollama';
+    aiProvider: 'openai' | 'anthropic' | 'ollama' | 'openrouter';
     apiKey?: string; // Encrypted or stored locally only
     imageStyles?: string[]; // Custom presets for image generation
+    lastActiveSceneId?: string | null; // Syncs cursor position
+    activeAiModel?: string; // Syncs model selection
 }
 
 export interface Act {

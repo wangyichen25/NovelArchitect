@@ -7,7 +7,7 @@ import { twMerge } from "tailwind-merge"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = (className?: string, variant: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link" = "default", size: "default" | "sm" | "lg" | "icon" = "default") => {
-    const base = "inline-flex items-center justify-content-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+    const base = "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
 
     const variants = {
         default: "bg-primary text-primary-foreground shadow hover:bg-primary/90",

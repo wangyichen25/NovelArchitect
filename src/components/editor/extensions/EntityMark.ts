@@ -64,7 +64,7 @@ export const EntityMark = Mark.create<EntityMarkOptions>({
                 renderHTML: attributes => {
                     return {
                         'data-entity-color': attributes.color,
-                        style: `text-decoration-line: underline; text-decoration-style: dashed; text-decoration-color: ${attributes.color}80; text-decoration-thickness: 1px; text-underline-offset: 2px; background-color: transparent; cursor: help;`,
+                        style: `text-decoration-line: underline; text-decoration-style: dashed; text-decoration-color: ${attributes.color}; text-decoration-thickness: 2px; text-underline-offset: 3px; background-color: transparent; cursor: help;`,
                     };
                 },
             },

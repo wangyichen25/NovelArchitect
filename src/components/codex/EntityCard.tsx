@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { db } from "@/lib/db";
 import { v4 as uuidv4 } from "uuid";
-import { Trash2, Save, Copy, Loader2, Image as ImageIcon, X } from "lucide-react";
+import { Trash2, Save, Copy, Loader2, Image as ImageIcon, X, Merge } from "lucide-react";
 import { KeyChain } from "@/lib/ai/keychain";
+import MergeCodexDialog from "./MergeCodexDialog";
 
 export default function EntityCard({ entry, onSave, onDelete }: { entry: CodexEntry, onSave: () => void, onDelete: () => void }) {
     const [params] = useState<{ id: string }>(window.location.pathname.split("/")[2] ? { id: window.location.pathname.split("/")[2] } : { id: '' });
@@ -20,6 +21,7 @@ export default function EntityCard({ entry, onSave, onDelete }: { entry: CodexEn
     const [stylesList, setStylesList] = useState<string[]>(["Cinematic", "Anime", "Digital Art", "Oil Painting", "Photography", "Concept Art"]);
     const [customStyle, setCustomStyle] = useState("");
     const [isCustom, setIsCustom] = useState(false);
+    const [showMergeDialog, setShowMergeDialog] = useState(false);
     const [history, setHistory] = useState<string[]>([]); // Deprecated generally, but keeping for session undo if needed, OR we just use gallery.
     // Let's use gallery from data directly.
 
@@ -176,6 +178,9 @@ export default function EntityCard({ entry, onSave, onDelete }: { entry: CodexEn
                     placeholder="Entry Name"
                 />
                 <div className="flex gap-2">
+                    <Button variant="ghost" size="icon" onClick={() => setShowMergeDialog(true)} title="Merge with another entry">
+                        <Merge className="h-4 w-4" />
+                    </Button>
                     <Button variant="ghost" size="icon" onClick={handleDelete} className="text-destructive">
                         <Trash2 className="h-4 w-4" />
                     </Button>
@@ -184,6 +189,23 @@ export default function EntityCard({ entry, onSave, onDelete }: { entry: CodexEn
                     </Button>
                 </div>
             </div>
+
+            <MergeCodexDialog
+                open={showMergeDialog}
+                onOpenChange={setShowMergeDialog}
+                currentEntry={data}
+                onSuccess={() => {
+                    // Refresh data after merge (aliases likely updated)
+                    // The onSave() might trigger a refresh up the chain, but let's ensure we reload locally too if needed
+                    // Actually handleSave does db.codex.put(data), so we should reload data from props or re-fetch.
+                    // But wait, the merge happens in the dialog on the DB level.
+                    // So we must reload 'data' from DB to see the new aliases.
+                    db.codex.get(data.id).then(updated => {
+                        if (updated) setData(updated);
+                    });
+                    onSave(); // Notify parent list to refresh
+                }}
+            />
 
             <div className="grid grid-cols-2 gap-4">
                 <div>

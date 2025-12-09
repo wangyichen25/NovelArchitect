@@ -5,7 +5,7 @@ import { useProjectStore } from "@/hooks/useProject";
 
 import SettingsDialog from "@/components/settings-dialog";
 import { Button } from "@/components/ui/button";
-import { Book, PenTool, LayoutGrid, Settings, ChevronLeft, ChevronRight, Menu } from "lucide-react";
+import { Book, PenTool, LayoutGrid, Settings, ChevronLeft, ChevronRight, Menu, Map } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useParams } from "next/navigation";
 import { useEffect } from "react";
@@ -25,7 +25,7 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
 
     const navItems = [
         { icon: PenTool, label: "Write", path: `/project/${id}/write` },
-        { icon: LayoutGrid, label: "Plan", path: `/project/${id}/plan` },
+        { icon: Map, label: "Plan", path: `/project/${id}/plan` },
         { icon: Book, label: "Codex", path: `/project/${id}/codex` },
     ];
 

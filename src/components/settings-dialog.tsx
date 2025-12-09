@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useProjectStore } from "@/hooks/useProject";
@@ -25,18 +26,57 @@ export default function SettingsDialog() {
     const [pin, setPin] = useState("");
     const [isSaved, setIsSaved] = useState(false);
 
+    // [NEW] Attempt to get current novel context
+    const params = useParams();
+    const novelId = params?.id as string | undefined;
+
     useEffect(() => {
+        if (isOpen) {
+            loadSettings();
+        }
+    }, [isOpen, novelId]);
+
+    const loadSettings = async () => {
+        // 1. Try to load from Novel DB first (Sync source)
+        if (novelId) {
+            try {
+                // Dynamically import db/index to ensure no SSR issues if any (though client comp is fine)
+                // actually we can import at top level if 'use client'
+                const { db } = await import("@/lib/db");
+                const novel = await db.novels.get(novelId);
+
+                if (novel && novel.settings) {
+                    if (novel.settings.aiProvider) setProvider(novel.settings.aiProvider);
+                    if (novel.settings.activeAiModel) setModel(novel.settings.activeAiModel);
+                    // For API Key, we might store the encrypted version in settings.apiKey?
+                    // Schema says: apiKey?: string; // Encrypted or stored locally only
+                    if (novel.settings.apiKey) {
+                        // We have an encrypted key blob. We need the PIN.
+                        // PIN is strictly local (localStorage) for security, we never sync the PIN.
+                        const storedPin = localStorage.getItem('novel-architect-pin-hash');
+                        if (storedPin) {
+                            setPin(storedPin);
+                            const decrypted = await KeyChain.decrypt(novel.settings.apiKey, storedPin);
+                            if (decrypted) setApiKey(decrypted);
+                        }
+                    }
+                    return; // Successfully loaded from DB
+                }
+            } catch (e) {
+                console.error("Failed to load settings from DB", e);
+            }
+        }
+
+        // 2. Fallback to LocalStorage (Global/Local-only defaults)
         const storedProvider = localStorage.getItem('novel-architect-provider') as any;
         if (storedProvider) setProvider(storedProvider);
 
-        // Load Model for provider
         const storedModel = localStorage.getItem(`novel-architect-model-${storedProvider || 'openai'}`);
         if (storedModel) setModel(storedModel);
 
         const storedPin = localStorage.getItem('novel-architect-pin-hash');
         if (storedPin) {
             setPin(storedPin);
-            // Try to auto-decrypt if we have a provider set (or the one we just loaded)
             const currentProvider = storedProvider || provider;
             if (currentProvider !== 'ollama') {
                 const encrypted = localStorage.getItem(`novel-architect-key-${currentProvider}`);
@@ -47,38 +87,45 @@ export default function SettingsDialog() {
                 }
             }
         }
-    }, [isOpen]); // Reload when opened to ensure fresh state if changed elsewhere
+    };
 
-    // Also update API key field when provider changes if we have a saved key for it
+    // Update model input when provider changes
     useEffect(() => {
-        if (provider === 'ollama') return;
-        const encrypted = localStorage.getItem(`novel-architect-key-${provider}`);
-        if (encrypted && pin) {
-            KeyChain.decrypt(encrypted, pin).then(decrypted => {
-                if (decrypted) setApiKey(decrypted);
-                else setApiKey(""); // Failed to decrypt or no key
-            });
-        }
-    }, [provider, pin]);
-
-    // Load model when provider changes to show correct saved value
-    useEffect(() => {
-        const savedModel = localStorage.getItem(`novel-architect-model-${provider}`);
-        setModel(savedModel || "");
+        // logic to reset model or load default if provider switches?
+        // keep simple for now
     }, [provider]);
 
     const handleSave = async () => {
+        let encryptedKey = "";
+
+        // 1. Encrypt Key if needed
         if (provider !== 'ollama') {
             if (!apiKey || !pin) {
                 alert("API Key and PIN are required for cloud providers.");
                 return;
             }
-            const encrypted = await KeyChain.encrypt(apiKey, pin);
-            localStorage.setItem(`novel-architect-key-${provider}`, encrypted);
-            localStorage.setItem(`novel-architect-pin-hash`, pin); // Insecure, just for demo matching
+            encryptedKey = await KeyChain.encrypt(apiKey, pin);
+
+            // Always update local cache too for redundancy
+            localStorage.setItem(`novel-architect-key-${provider}`, encryptedKey);
+            localStorage.setItem(`novel-architect-pin-hash`, pin);
         }
+
+        // Update LocalStorage (Global)
         localStorage.setItem(`novel-architect-model-${provider}`, model);
         localStorage.setItem('novel-architect-provider', provider);
+
+        // 2. Save to Novel DB (Sync)
+        if (novelId) {
+            const { db } = await import("@/lib/db");
+            await db.novels.update(novelId, {
+                'settings.aiProvider': provider,
+                'settings.activeAiModel': model,
+                'settings.apiKey': encryptedKey || undefined, // Sync the encrypted blob!
+                lastModified: Date.now()
+            });
+        }
+
         setIsSaved(true);
         setTimeout(() => setIsSaved(false), 2000);
         setTimeout(() => setIsOpen(false), 1000);
@@ -93,9 +140,12 @@ export default function SettingsDialog() {
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                    <DialogTitle>AI Settings (BYOK)</DialogTitle>
+                    <DialogTitle>AI Settings {novelId ? '(Project)' : '(Global)'}</DialogTitle>
                     <DialogDescription>
-                        Configure your AI provider and API keys. Keys are stored locally in your browser.
+                        Configure your AI provider and API keys.
+                        {novelId ? " Settings will be synced to this project." : " Settings are stored locally."}
+                        <br />
+                        <span className="text-xs text-muted-foreground">Keys are encrypted with your PIN before syncing.</span>
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
