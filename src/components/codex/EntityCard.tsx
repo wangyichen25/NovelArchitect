@@ -167,7 +167,7 @@ export default function EntityCard({ entry, onSave, onDelete }: { entry: CodexEn
     };
 
     return (
-        <div className="p-6 max-w-2xl mx-auto space-y-6">
+        <div className="p-6 pb-24 max-w-2xl mx-auto space-y-6">
             <div className="flex items-center justify-between">
                 <Input
                     value={data.name}

@@ -7,6 +7,15 @@ import { Input } from "@/components/ui/input";
 import { useProjectStore } from "@/hooks/useProject";
 import { KeyChain } from "@/lib/ai/keychain";
 import { Settings, Lock, Key, CheckCircle } from "lucide-react";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+    DialogFooter,
+} from "@/components/ui/dialog";
 
 export default function SettingsDialog() {
     const [isOpen, setIsOpen] = useState(false);
@@ -38,7 +47,7 @@ export default function SettingsDialog() {
                 }
             }
         }
-    }, []);
+    }, [isOpen]); // Reload when opened to ensure fresh state if changed elsewhere
 
     // Also update API key field when provider changes if we have a saved key for it
     useEffect(() => {
@@ -72,81 +81,99 @@ export default function SettingsDialog() {
         localStorage.setItem('novel-architect-provider', provider);
         setIsSaved(true);
         setTimeout(() => setIsSaved(false), 2000);
+        setTimeout(() => setIsOpen(false), 1000);
     };
 
     return (
-        <div className="p-4 border rounded-lg bg-card text-card-foreground shadow-sm max-w-md">
-            <h3 className="font-bold flex items-center mb-4"><Settings className="mr-2 h-4 w-4" /> AI Settings (BYOK)</h3>
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+                <Button variant="ghost" size="icon" title="AI Settings">
+                    <Settings className="h-5 w-5" />
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle>AI Settings (BYOK)</DialogTitle>
+                    <DialogDescription>
+                        Configure your AI provider and API keys. Keys are stored locally in your browser.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <label className="text-right text-sm font-medium">Provider</label>
+                        <select
+                            className="col-span-3 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors"
+                            value={provider}
+                            onChange={(e) => setProvider(e.target.value as any)}
+                        >
+                            <option value="openai">OpenAI</option>
+                            <option value="anthropic">Anthropic</option>
+                            <option value="openrouter">OpenRouter</option>
+                            <option value="ollama">Ollama (Local)</option>
+                        </select>
+                    </div>
 
-            <div className="space-y-4">
-                <div>
-                    <label className="text-sm font-medium">Provider</label>
-                    <select
-                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors"
-                        value={provider}
-                        onChange={(e) => setProvider(e.target.value as any)}
-                    >
-                        <option value="openai">OpenAI</option>
-                        <option value="anthropic">Anthropic</option>
-                        <option value="openrouter">OpenRouter</option>
-                        <option value="ollama">Ollama (Local)</option>
-                    </select>
-                </div>
+                    {provider !== 'ollama' && (
+                        <>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <label className="text-right text-sm font-medium">API Key</label>
+                                <Input
+                                    type="password"
+                                    value={apiKey}
+                                    onChange={(e) => setApiKey(e.target.value)}
+                                    placeholder="sk-..."
+                                    className="col-span-3"
+                                />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <label className="text-right text-sm font-medium">Model</label>
+                                <Input
+                                    value={model}
+                                    onChange={(e) => setModel(e.target.value)}
+                                    placeholder={
+                                        provider === 'openai' ? 'gpt-4-turbo' :
+                                            provider === 'anthropic' ? 'claude-3-opus-20240229' :
+                                                provider === 'openrouter' ? 'anthropic/claude-3.5-sonnet' : 'Model ID'
+                                    }
+                                    className="col-span-3"
+                                />
+                            </div>
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <label className="text-right text-sm font-medium flex items-center justify-end gap-1">
+                                    <Lock className="h-3 w-3" /> PIN
+                                </label>
+                                <div className="col-span-3">
+                                    <Input
+                                        type="password"
+                                        value={pin}
+                                        onChange={(e) => setPin(e.target.value)}
+                                        placeholder="Session encryption PIN"
+                                        maxLength={6}
+                                    />
+                                    <p className="text-[10px] text-muted-foreground mt-1">Used to encrypt your key locally.</p>
+                                </div>
+                            </div>
+                        </>
+                    )}
 
-                {provider !== 'ollama' && (
-                    <>
-                        <div>
-                            <label className="text-sm font-medium">API Key</label>
-                            <Input
-                                type="password"
-                                value={apiKey}
-                                onChange={(e) => setApiKey(e.target.value)}
-                                placeholder="sk-..."
-                            />
-                        </div>
-                        <div>
-                            <label className="text-sm font-medium">Model</label>
+                    {provider === 'ollama' && (
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <label className="text-right text-sm font-medium">Model</label>
                             <Input
                                 value={model}
                                 onChange={(e) => setModel(e.target.value)}
-                                placeholder={
-                                    provider === 'openai' ? 'gpt-4-turbo' :
-                                        provider === 'anthropic' ? 'claude-3-opus-20240229' :
-                                            provider === 'openrouter' ? 'anthropic/claude-3.5-sonnet' : 'Model ID'
-                                }
+                                placeholder="llama3"
+                                className="col-span-3"
                             />
                         </div>
-                        <div>
-                            <label className="text-sm font-medium flex items-center">
-                                <Lock className="mr-1 h-3 w-3" /> Session PIN
-                            </label>
-                            <Input
-                                type="password"
-                                value={pin}
-                                onChange={(e) => setPin(e.target.value)}
-                                placeholder="Enter a PIN to encrypt your key locally"
-                                maxLength={6}
-                            />
-                            <p className="text-xs text-muted-foreground mt-1">We don't store your key plain text.</p>
-                        </div>
-                    </>
-                )}
-
-                {provider === 'ollama' && (
-                    <div>
-                        <label className="text-sm font-medium">Model</label>
-                        <Input
-                            value={model}
-                            onChange={(e) => setModel(e.target.value)}
-                            placeholder="llama3"
-                        />
-                    </div>
-                )}
-
-                <Button onClick={handleSave} className="w-full">
-                    {isSaved ? <><CheckCircle className="mr-2 h-4 w-4" /> Saved</> : "Save Settings"}
-                </Button>
-            </div>
-        </div>
+                    )}
+                </div>
+                <DialogFooter>
+                    <Button onClick={handleSave}>
+                        {isSaved ? <><CheckCircle className="mr-2 h-4 w-4" /> Saved</> : "Save Settings"}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     );
 }
