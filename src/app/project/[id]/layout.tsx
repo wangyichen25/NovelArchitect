@@ -14,7 +14,7 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
     const id = params.id as string;
     const router = useRouter();
     const pathname = usePathname();
-    const { isSidebarOpen, toggleSidebar } = useProjectStore();
+
 
     useEffect(() => {
         if (id && pathname && pathname.startsWith(`/project/${id}`) && pathname !== `/project/${id}`) {
@@ -46,10 +46,6 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
                         <item.icon className="h-5 w-5" />
                     </Button>
                 ))}
-                <div className="flex-1" />
-                <Button variant="ghost" size="icon" onClick={toggleSidebar}>
-                    {isSidebarOpen ? <ChevronRight className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-                </Button>
             </div>
 
             {/* Main Content Area */}
