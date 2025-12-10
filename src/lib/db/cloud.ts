@@ -146,10 +146,50 @@ export async function downloadNovelFromCloud(novelId: string) {
     const { data: novel, error: ne } = await supabase.from('novels').select('*').eq('id', novelId).single()
     if (ne) throw ne
 
-    const { data: acts } = await supabase.from('acts').select('*').eq('novel_id', novelId)
-    const { data: chapters } = await supabase.from('chapters').select('*').in('act_id', acts?.map(a => a.id) || [])
-    const { data: scenes } = await supabase.from('scenes').select('*').eq('novel_id', novelId)
-    const { data: codex } = await supabase.from('codex').select('*').eq('novel_id', novelId)
+    const { data: acts, error: actsError } = await supabase.from('acts').select('*').eq('novel_id', novelId)
+    if (actsError) throw new Error(`Failed to fetch acts: ${actsError.message}`)
+
+    const { data: chapters, error: chaptersError } = await supabase.from('chapters').select('*').in('act_id', acts?.map(a => a.id) || [])
+    if (chaptersError) throw new Error(`Failed to fetch chapters: ${chaptersError.message}`)
+
+    const { data: scenes, error: scenesError } = await supabase.from('scenes').select('*').eq('novel_id', novelId)
+    if (scenesError) throw new Error(`Failed to fetch scenes: ${scenesError.message}`)
+
+    // Fetch Codex with pagination to avoid timeout (likely due to images)
+    const CODEX_BATCH_SIZE = 20;
+    let codex: any[] = [];
+    let page = 0;
+    let hasMore = true;
+
+    while (hasMore) {
+        const from = page * CODEX_BATCH_SIZE;
+        const to = from + CODEX_BATCH_SIZE - 1;
+
+        const { data: batch, error: batchError } = await supabase
+            .from('codex')
+            .select('*')
+            .eq('novel_id', novelId)
+            .range(from, to);
+
+        if (batchError) throw new Error(`Failed to fetch codex batch ${page}: ${batchError.message}`);
+
+        if (batch && batch.length > 0) {
+            codex = codex.concat(batch);
+            if (batch.length < CODEX_BATCH_SIZE) {
+                hasMore = false;
+            }
+        } else {
+            hasMore = false;
+        }
+        page++;
+    }
+
+    console.log(`[Sync] Download stats for ${novelId}:`, {
+        acts: acts?.length,
+        chapters: chapters?.length,
+        scenes: scenes?.length,
+        codex: codex?.length
+    });
 
     // Save to Local DB (Dexie)
     await db.transaction('rw', [db.novels, db.acts, db.chapters, db.scenes, db.codex], async () => {
@@ -172,7 +212,7 @@ export async function downloadNovelFromCloud(novelId: string) {
             })))
         }
 
-        // ... similar mapping for chapters, scenes, codex but handling snake_case to camelCase
+
         if (chapters) {
             await db.chapters.bulkPut(chapters.map(c => ({
                 id: c.id,
