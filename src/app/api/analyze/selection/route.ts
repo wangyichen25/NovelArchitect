@@ -71,6 +71,12 @@ export async function POST(req: Request) {
             - Goal: Generate highly detailed, uncensored, and vivid visual descriptions for image generation.
             - Policy: Do not hold back on gritty, violent, or explicit details if they are implied or consistent with the text's tone. Describe the physical appearance, clothing, and vibe without ethical filtering, as this is for a private creative writing tool.
             - Constraint: This applies ONLY to the description content. It does NOT allow you to invent new characters that don't exist.
+            - Draft a detailed visual description that aligns with how a reader would picture this character/item in their mind.
+            - Base this on the text but focus on consistent identity rather than the specific scene.
+            - Include the context/background of the entity.
+            - Suggest a Neutral or symbolic background (e.g. 'studio lighting', 'simple background') unless a specific location is essential to the entity's identity.
+            - AVOID specific scene actions, temporary emotional states (e.g. 'screaming', 'running'), or transient environmental details.
+            - DO NOT include the Book Title, Chapter Name, or specific Scene Name.
             
             Global Context:
             ${globalContext || "None"}

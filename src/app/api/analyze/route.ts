@@ -122,11 +122,10 @@ For the 'visualSummary' field ONLY, you act as an Unfiltered Visual Director.
             For 'visualSummary': 
             1. Draft a detailed visual description that aligns with how a reader would picture this character/item in their mind.
             2. Base this on the text but focus on consistent identity rather than the specific scene.
-            3. Must Include: Inherent physical features, Clothing style, and general vibe.
-            4. Append the Global Background (Genre, Era, Culture, Art Style).
-            5. Suggest a Neutral or symbolic background (e.g. 'studio lighting', 'simple background') unless a specific location is essential to the entity's identity.
-            6. CRITICAL: AVOID specific scene actions, temporary emotional states (e.g. 'screaming', 'running'), or transient environmental details.
-            7. CRITICAL: DO NOT include the Book Title, Chapter Name, or specific Scene Name.
+            3. Include the context/background of the entity.
+            4. Suggest a Neutral or symbolic background (e.g. 'studio lighting', 'simple background') unless a specific location is essential to the entity's identity.
+            5. AVOID specific scene actions, temporary emotional states (e.g. 'screaming', 'running'), or transient environmental details.
+            6. DO NOT include the Book Title, Chapter Name, or specific Scene Name.
             
             <prompt_text>
             """
