@@ -254,3 +254,28 @@ export function deleteEntity(table: string, id: string) {
         }
     });
 }
+
+export function syncPromptPreset(preset: import('./schema').PromptPreset): Promise<void> {
+    return debouncedSync(`prompt_preset_${preset.id}`, async () => {
+        const userId = await getCurrentUserId();
+        if (!userId) return;
+
+        const supabase = createClient();
+        const { error } = await supabase.from('prompt_presets').upsert({
+            id: preset.id,
+            user_id: userId,
+            name: preset.name,
+            prompt: preset.prompt,
+            last_used: preset.lastUsed
+        });
+
+        if (error) {
+            console.error('Auto-Sync PromptPreset Error:', JSON.stringify(error, null, 2));
+            if (error.code === '42P01') {
+                console.error('CRITICAL: Table "prompt_presets" not found in Supabase.');
+            }
+            console.error('Payload:', { id: preset.id, name: preset.name });
+        }
+    });
+}
+

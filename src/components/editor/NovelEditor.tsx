@@ -5,7 +5,7 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Highlight from '@tiptap/extension-highlight';
 import BubbleMenuExtension from '@tiptap/extension-bubble-menu';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { db } from '@/lib/db';
 import { AhoCorasick } from '@/lib/ai/scanner';
@@ -16,12 +16,25 @@ import { v4 as uuidv4 } from 'uuid';
 import { EntityMark } from '@/components/editor/extensions/EntityMark';
 import { SlashCommand, getSuggestionItems, renderItems } from '@/components/editor/extensions/SlashCommand';
 import Placeholder from '@tiptap/extension-placeholder';
+import { RewriteDialog } from './RewriteDialog';
 
 interface NovelEditorProps {
     initialContent?: any;
     onUpdate?: (content: any) => void;
     sceneId: string;
 }
+
+
+const getColorForCategory = (cat: string) => {
+    switch (cat) {
+        case 'character': return '#0891b2'; // Cyan-600
+        case 'location': return '#16a34a'; // Green-600
+        case 'object': return '#2563eb'; // Blue-600
+        case 'lore': return '#9333ea'; // Purple-600
+        case 'multiple': return '#db2777'; // Pink-600 (Ambiguous)
+        default: return '#d97706'; // Amber-600
+    }
+};
 
 export default function NovelEditor({ initialContent, onUpdate, sceneId }: NovelEditorProps) {
     const params = useParams();
@@ -31,7 +44,8 @@ export default function NovelEditor({ initialContent, onUpdate, sceneId }: Novel
     const [hoveredEntity, setHoveredEntity] = useState<{ id: string; name: string; description: string; category: string; image?: string; x: number; y: number } | null>(null);
     const [isBubbleMenuOpen, setIsBubbleMenuOpen] = useState(false);
     const [bubbleMenuPos, setBubbleMenuPos] = useState({ x: 0, y: 0 });
-    const handlersRef = useRef({ analyze: () => { }, scan: () => { }, aiWrite: () => { }, aiRephrase: () => { }, addCodex: () => { } });
+    const [isRewriteDialogOpen, setIsRewriteDialogOpen] = useState(false);
+    const handlersRef = useRef({ analyze: () => { }, scan: () => { }, aiWrite: () => { }, aiRewrite: () => { }, addCodex: () => { } });
 
     const editor = useEditor({
         extensions: [
@@ -247,9 +261,11 @@ export default function NovelEditor({ initialContent, onUpdate, sceneId }: Novel
             // Try to load from Project Settings (Legacy/Override)
             const novel = await db.novels.get(novelId);
             if (novel && novel.settings) {
-                if (novel.settings.aiProvider) provider = novel.settings.aiProvider;
+                // Legacy: if (novel.settings.aiProvider) provider = novel.settings.aiProvider;
                 if (novel.settings.activeAiModel) model = novel.settings.activeAiModel;
             }
+            console.log("Analysis Config:", { provider, model });
+
 
             if (provider !== 'ollama') {
                 const { AnalysisService } = await import("@/lib/services/analysis");
@@ -365,7 +381,7 @@ export default function NovelEditor({ initialContent, onUpdate, sceneId }: Novel
         }
     };
 
-    const handleScan = async () => {
+    const handleScan = useCallback(async () => {
         if (!editor || !novelId) return;
         setIsScanning(true);
 
@@ -407,7 +423,7 @@ export default function NovelEditor({ initialContent, onUpdate, sceneId }: Novel
             });
 
             if (keywords.length === 0) {
-                if (!isAnalyzing) alert("No Codex entries found to scan for.");
+                // if (!isAnalyzing) alert("No Codex entries found to scan for."); // Silent fail on auto-scan
                 setIsScanning(false);
                 return;
             }
@@ -466,22 +482,24 @@ export default function NovelEditor({ initialContent, onUpdate, sceneId }: Novel
 
         } catch (e) {
             console.error(e);
-            alert("Scan failed");
+            // alert("Scan failed"); // Silent fail
         } finally {
             setIsScanning(false);
         }
-    };
+    }, [editor, novelId]);
 
-    const getColorForCategory = (cat: string) => {
-        switch (cat) {
-            case 'character': return '#0891b2'; // Cyan-600
-            case 'location': return '#16a34a'; // Green-600
-            case 'object': return '#2563eb'; // Blue-600
-            case 'lore': return '#9333ea'; // Purple-600
-            case 'multiple': return '#db2777'; // Pink-600 (Ambiguous)
-            default: return '#d97706'; // Amber-600
-        }
-    };
+    // Auto-scan on load or scene change
+    useEffect(() => {
+        if (!editor || !sceneId) return;
+
+        // Wait for editor content to be ready
+        const timer = setTimeout(() => {
+            handleScan();
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [sceneId, editor, handleScan]);
+
 
     const handleAIWrite = async () => {
         if (!editor) return;
@@ -502,9 +520,11 @@ export default function NovelEditor({ initialContent, onUpdate, sceneId }: Novel
             // Try to load from Project Settings
             const novel = await db.novels.get(novelId);
             if (novel && novel.settings) {
-                if (novel.settings.aiProvider) provider = novel.settings.aiProvider;
+                // Legacy: if (novel.settings.aiProvider) provider = novel.settings.aiProvider;
                 if (novel.settings.activeAiModel) model = novel.settings.activeAiModel;
             }
+            console.log("AI Write Config:", { provider, model });
+
 
             if (provider !== 'ollama') {
                 const { AnalysisService } = await import("@/lib/services/analysis");
@@ -548,16 +568,18 @@ export default function NovelEditor({ initialContent, onUpdate, sceneId }: Novel
         }
     };
 
-    const handleAIRephrase = async () => {
+    const performRewrite = async (instruction: string) => {
         if (!editor) return;
         const { from, to } = editor.state.selection;
-        if (from === to) {
-            alert("Please select some text to rephrase first.");
-            return;
-        }
+        // If selection is lost (e.g. clicking dialog), we might need to rely on saved selection or just ensure we don't lose it.
+        // Dialog usually steals focus?
+        // We might need to store the selection range when opening the dialog.
+        // But for now, let's assume Tiptap keeps selection or we recover it.
+
         const selectedText = editor.state.doc.textBetween(from, to, '\n');
 
         setIsAnalyzing(true);
+        setIsRewriteDialogOpen(false);
         try {
             // 1. Retrieve Config
             let provider = localStorage.getItem('novel-architect-provider') || 'openai';
@@ -567,9 +589,11 @@ export default function NovelEditor({ initialContent, onUpdate, sceneId }: Novel
             // Try to load from Project Settings
             const novel = await db.novels.get(novelId);
             if (novel && novel.settings) {
-                if (novel.settings.aiProvider) provider = novel.settings.aiProvider;
+                // Legacy: if (novel.settings.aiProvider) provider = novel.settings.aiProvider;
                 if (novel.settings.activeAiModel) model = novel.settings.activeAiModel;
             }
+            console.log("Rewrite Config:", { provider, model });
+
 
             if (provider !== 'ollama') {
                 const { AnalysisService } = await import("@/lib/services/analysis");
@@ -586,7 +610,7 @@ export default function NovelEditor({ initialContent, onUpdate, sceneId }: Novel
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    instruction: "Rephrase the following text to be more engaging and descriptive.",
+                    instruction: instruction,
                     prompt: selectedText, // Sending selection as prompt
                     context: "",
                     provider,
@@ -607,10 +631,20 @@ export default function NovelEditor({ initialContent, onUpdate, sceneId }: Novel
             }
         } catch (e: any) {
             console.error(e);
-            alert("Rephrase failed: " + e.message);
+            alert("Rewrite failed: " + e.message);
         } finally {
             setIsAnalyzing(false);
         }
+    };
+
+    const handleAIRewrite = () => {
+        if (!editor) return;
+        const { from, to } = editor.state.selection;
+        if (from === to) {
+            alert("Please select some text to rewrite first.");
+            return;
+        }
+        setIsRewriteDialogOpen(true);
     };
 
     useEffect(() => {
@@ -618,10 +652,10 @@ export default function NovelEditor({ initialContent, onUpdate, sceneId }: Novel
             analyze: handleAnalyze,
             scan: handleScan,
             aiWrite: handleAIWrite,
-            aiRephrase: handleAIRephrase,
+            aiRewrite: handleAIRewrite,
             addCodex: handleAddCodex
         };
-    }, [handleAnalyze, handleScan, handleAIWrite, handleAIRephrase, handleAddCodex]); // Depend on them (they are defined in-component so they change on render? No wait, strict mode?)
+    }, [handleAnalyze, handleScan, handleAIWrite, handleAIRewrite, handleAddCodex]); // Depend on them (they are defined in-component so they change on render? No wait, strict mode?)
     // Actually handleAnalyze etc are closures, they depend on `editor` etc. so they DO change.
     // The ref needs to be updated.
 
@@ -658,10 +692,10 @@ export default function NovelEditor({ initialContent, onUpdate, sceneId }: Novel
                 >
                     <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={(e) => {
                         e.preventDefault(); // Prevent losing focus?
-                        handleAIRephrase();
+                        handleAIRewrite();
                     }}>
                         <RefreshCw className="w-3 h-3 mr-1" />
-                        AI Rephrase
+                        AI Rewrite
                     </Button>
                     <div className="w-[1px] h-4 bg-border mx-1" />
                     <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={(e) => {
@@ -697,6 +731,12 @@ export default function NovelEditor({ initialContent, onUpdate, sceneId }: Novel
                     </div>
                 </div>
             )}
+
+            <RewriteDialog
+                open={isRewriteDialogOpen}
+                onOpenChange={setIsRewriteDialogOpen}
+                onRewrite={performRewrite}
+            />
         </div>
     );
 }

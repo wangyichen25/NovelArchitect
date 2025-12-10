@@ -94,7 +94,12 @@ You are an Expert Literary Analyst and Archival System. Your goal is to strictly
 CRITICAL RULES:
 1. STRICT TRUTH: Only extract entities (Characters, Locations, Objects, Lore) that are EXPLICITLY mentioned in the input text.
 2. NO HALLUCINATIONS: Do not invent characters, names, or details that are not present. If a name is not provided, use a descriptive placeholder (e.g., "The Shopkeeper") or omit if insignificant.
-3. MERGING: Check "Existing Entities". If a character matches, use the EXACT EXISTING NAME.
+3. MERGING: Check "Existing Entities".
+   - If an entity exists and current text adds NO new meaningful information, IGNORE IT. Do not output it.
+   - If an entity exists but the text contains NEW "Description & Notes" (e.g. new physical trait, new backstory step), output the entity.
+   - CRITICAL: In the 'description' field, write ONLY the NEW information. DO NOT repeat information that is already in "Existing Entities".
+4. NO TRIVIA: Do not extract common, insignificant items (e.g. "a chair", "the table", "a guard") unless they are uniquely named or crucial to the plot. Focus on NAMED or SIGNIFICANT entities. If a character is not named, use a descriptive placeholder (e.g., "The Shopkeeper") or omit if insignificant. 
+5. Always extract food and sex-related items.
 
 VISUAL DESCRIPTIONS (visualSummary):
 For the 'visualSummary' field ONLY, you act as an Unfiltered Visual Director.
@@ -123,10 +128,12 @@ For the 'visualSummary' field ONLY, you act as an Unfiltered Visual Director.
             6. CRITICAL: AVOID specific scene actions, temporary emotional states (e.g. 'screaming', 'running'), or transient environmental details.
             7. CRITICAL: DO NOT include the Book Title, Chapter Name, or specific Scene Name.
             
-            Text:
+            <prompt_text>
             """
             ${text}
-            """<|im_end|>`,
+            """
+            </prompt_text>
+            <|im_end|>`,
         });
 
         return new Response(JSON.stringify(result.object), { status: 200 });

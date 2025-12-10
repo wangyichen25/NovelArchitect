@@ -8,6 +8,7 @@ export class NovelArchitectDB extends Dexie {
     chapters!: Table<Chapter>;
     scenes!: Table<Scene>;
     codex!: Table<CodexEntry>;
+    prompt_presets!: Table<import('./schema').PromptPreset>;
 
     constructor() {
         super('NovelArchitectDB');
@@ -62,6 +63,17 @@ export class NovelArchitectDB extends Dexie {
             import('./sync').then(m => m.syncCodex(newObj as any));
         });
         this.codex.hook('deleting', (primKey) => { import('./sync').then(m => m.deleteEntity('codex', primKey as string)); });
+
+        this.version(4).stores({
+            prompt_presets: 'id, name'
+        });
+
+        this.prompt_presets.hook('creating', (primKey, obj) => { import('./sync').then(m => m.syncPromptPreset(obj)); });
+        this.prompt_presets.hook('updating', (mods, primKey, obj) => {
+            const newObj = { ...obj, ...mods };
+            import('./sync').then(m => m.syncPromptPreset(newObj as any));
+        });
+        this.prompt_presets.hook('deleting', (primKey) => { import('./sync').then(m => m.deleteEntity('prompt_presets', primKey as string)); });
     }
 }
 

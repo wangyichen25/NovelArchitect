@@ -74,3 +74,10 @@ export interface CodexRelation {
     type: string;
     description: string;
 }
+
+export interface PromptPreset {
+    id: string; // UUID
+    name: string;
+    prompt: string;
+    lastUsed?: number;
+}
