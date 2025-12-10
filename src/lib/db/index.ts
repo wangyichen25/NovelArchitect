@@ -23,6 +23,10 @@ export class NovelArchitectDB extends Dexie {
             scenes: 'id, novelId, chapterId, order, metadata.povCharacterId, [chapterId+order]'
         });
 
+        this.version(3).stores({
+            scenes: 'id, novelId, chapterId, order, metadata.povCharacterId, [chapterId+order]'
+        });
+
         // --- Auto-Sync Hooks ---
         // Dynamically import sync functions to avoid circular dependency matching issues at runtime if any
         // But since we are inside class method, standard import should work if avoiding direct usage in constructor synchronously if dependencies are cyclic.

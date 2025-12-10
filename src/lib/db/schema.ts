@@ -48,6 +48,7 @@ export interface Scene {
         timeOfDay: string;
         wordCount: number;
         status: 'draft' | 'revised' | 'final';
+        lastAnalyzed?: number; // Timestamp of last auto-extraction
     };
     // Cache for detected codex mentions to speed up rendering
     cachedMentions: string[];

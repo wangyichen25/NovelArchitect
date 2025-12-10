@@ -561,29 +561,36 @@ export default function NovelEditor({ initialContent, onUpdate, sceneId }: Novel
             // 1. Fetch Codex Entries
             const entries = await db.codex.where({ novelId }).toArray();
             const keywords: string[] = [];
-            // Map keyword -> Entity Data
-            const entityMap: Record<string, { id: string; description: string; category: string; image?: string; color: string }> = {};
+            // Map keyword -> List of Entity Data
+            const entityMap: Record<string, { id: string; name: string; description: string; category: string; image?: string; color: string }[]> = {};
+            const keywordsSet = new Set<string>();
 
             entries.forEach(e => {
-                keywords.push(e.name);
-                entityMap[e.name.toLowerCase()] = {
-                    id: e.id,
-                    description: e.description,
-                    category: e.category,
-                    image: e.image,
-                    color: getColorForCategory(e.category)
-                };
-                if (e.aliases) {
-                    e.aliases.forEach(a => {
-                        keywords.push(a);
-                        entityMap[a.toLowerCase()] = {
-                            id: e.id, // Aliases map to same ID
+                const addToMap = (key: string) => {
+                    const normalizedKey = key.toLowerCase();
+                    if (!entityMap[normalizedKey]) {
+                        entityMap[normalizedKey] = [];
+                        if (!keywordsSet.has(normalizedKey)) { // Only add unique keywords
+                            keywordsSet.add(normalizedKey);
+                            keywords.push(key);
+                        }
+                    }
+                    // Avoid duplicates if alias repeated
+                    if (!entityMap[normalizedKey].find(item => item.id === e.id)) {
+                        entityMap[normalizedKey].push({
+                            id: e.id,
+                            name: e.name,
                             description: e.description,
                             category: e.category,
                             image: e.image,
                             color: getColorForCategory(e.category)
-                        };
-                    });
+                        });
+                    }
+                };
+
+                addToMap(e.name);
+                if (e.aliases) {
+                    e.aliases.forEach(addToMap);
                 }
             });
 
@@ -609,13 +616,34 @@ export default function NovelEditor({ initialContent, onUpdate, sceneId }: Novel
                 if (node.isText && node.text) {
                     const matches = scanner.search(node.text);
                     matches.forEach(m => {
-                        const data = entityMap[m.word.toLowerCase()];
-                        if (data) {
+                        const candidates = entityMap[m.word.toLowerCase()];
+                        if (candidates && candidates.length > 0) {
                             const from = pos + m.start;
                             const to = pos + m.end;
 
+                            let data;
+                            if (candidates.length === 1) {
+                                data = candidates[0];
+                            } else {
+                                // Handle Ambiguity
+                                data = {
+                                    id: candidates.map(c => c.id).join(','),
+                                    name: m.word, // Use the matched text as name
+                                    description: candidates.map(c => `[${c.name} (${c.category})]:\n${c.description || 'No description'}`).join('\n\n---\n\n'),
+                                    category: 'multiple',
+                                    color: getColorForCategory('multiple'),
+                                    image: candidates.find(c => c.image)?.image // Use first available image
+                                };
+                            }
+
                             // Add mark to transaction
-                            tr.addMark(from, to, editor.schema.marks.entity.create(data));
+                            tr.addMark(from, to, editor.schema.marks.entity.create({
+                                id: data.id,
+                                description: data.description,
+                                category: data.category,
+                                color: data.color,
+                                image: data.image
+                            }));
                         }
                     });
                 }
@@ -638,6 +666,7 @@ export default function NovelEditor({ initialContent, onUpdate, sceneId }: Novel
             case 'location': return '#16a34a'; // Green-600
             case 'object': return '#2563eb'; // Blue-600
             case 'lore': return '#9333ea'; // Purple-600
+            case 'multiple': return '#db2777'; // Pink-600 (Ambiguous)
             default: return '#d97706'; // Amber-600
         }
     };
@@ -867,7 +896,7 @@ export default function NovelEditor({ initialContent, onUpdate, sceneId }: Novel
                         {hoveredEntity.name}
                         <span className="text-[10px] uppercase opacity-50 px-1 border rounded">{hoveredEntity.category}</span>
                     </div>
-                    <div className="mt-1 opacity-90 line-clamp-[10]">
+                    <div className="mt-1 opacity-90 line-clamp-[10] whitespace-pre-wrap">
                         {hoveredEntity.description || "No description available."}
                     </div>
                 </div>

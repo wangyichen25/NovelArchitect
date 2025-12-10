@@ -7,13 +7,15 @@ import { CodexEntry } from "@/lib/db/schema";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, User, MapPin, Box, Book } from "lucide-react";
+import { Search, Plus, User, MapPin, Box, Book, ScanSearch } from "lucide-react";
 import { useParams } from "next/navigation";
+import BatchExtractDialog from "./BatchExtractDialog";
 
 export default function CodexSidebar({ onSelect }: { onSelect: (entry: CodexEntry) => void }) {
     const params = useParams();
     const novelId = params.id as string;
     const [generatingProgress, setGeneratingProgress] = useState<string | null>(null);
+    const [showBatchDialog, setShowBatchDialog] = useState(false);
 
     const handleGenerateAll = async () => {
         if (!entries) return;
@@ -119,6 +121,9 @@ export default function CodexSidebar({ onSelect }: { onSelect: (entry: CodexEntr
             <div className="p-4 border-b space-y-4">
                 <h2 className="font-serif font-bold text-lg">Codex</h2>
                 <div className="relative">
+                    <Button variant="ghost" size="icon" onClick={() => setShowBatchDialog(true)} title="Batch Auto-Extract">
+                        <ScanSearch className="h-4 w-4" />
+                    </Button>
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                         placeholder="Search..."
@@ -133,6 +138,8 @@ export default function CodexSidebar({ onSelect }: { onSelect: (entry: CodexEntr
                     <Button variant={filter === 'location' ? 'default' : 'ghost'} size="icon" onClick={() => setFilter('location')} title="Locations"><MapPin className="h-4 w-4" /></Button>
                 </div>
             </div>
+
+            <BatchExtractDialog open={showBatchDialog} onOpenChange={setShowBatchDialog} />
 
             <div className="flex-1 overflow-y-auto p-2">
                 {entries?.map(entry => (

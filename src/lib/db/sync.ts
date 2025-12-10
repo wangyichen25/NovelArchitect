@@ -1,4 +1,3 @@
-
 import { createClient } from '@/lib/supabase/client'
 import { db } from './index'
 import { Scene, Novel, Act, Chapter, CodexEntry } from './schema'
@@ -11,6 +10,26 @@ function addToQueue(operation: () => Promise<void>) {
     return syncQueue;
 }
 
+// Debounce system to prevent Supabase flooding on repetitive updates (e.g. typing)
+const debounceMap = new Map<string, { timer: NodeJS.Timeout, resolve: () => void }>();
+
+function debouncedSync(key: string, operation: () => Promise<void>, delay: number = 2000): Promise<void> {
+    const existing = debounceMap.get(key);
+    if (existing) {
+        clearTimeout(existing.timer);
+        existing.resolve(); // Resolves the previous overwritten promise immediately
+    }
+
+    return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => {
+            debounceMap.delete(key);
+            addToQueue(operation).then(resolve).catch(reject);
+        }, delay);
+
+        debounceMap.set(key, { timer, resolve });
+    });
+}
+
 // Helper to check if we have a user
 async function getCurrentUserId() {
     const supabase = createClient();
@@ -19,7 +38,7 @@ async function getCurrentUserId() {
 }
 
 export function syncNovel(novelId: string): Promise<void> {
-    return addToQueue(async () => {
+    return debouncedSync(`novel_${novelId}`, async () => {
         const userId = await getCurrentUserId();
         if (!userId) return; // Not logged in, skip sync
 
@@ -49,7 +68,7 @@ export function syncNovel(novelId: string): Promise<void> {
 }
 
 export function syncAct(act: Act): Promise<void> {
-    return addToQueue(async () => {
+    return debouncedSync(`act_${act.id}`, async () => {
         const userId = await getCurrentUserId();
         if (!userId) return;
 
@@ -85,7 +104,7 @@ export function syncAct(act: Act): Promise<void> {
 }
 
 export function syncChapter(chapter: Chapter): Promise<void> {
-    return addToQueue(async () => {
+    return debouncedSync(`chapter_${chapter.id}`, async () => {
         const userId = await getCurrentUserId();
         if (!userId) return;
 
@@ -120,7 +139,7 @@ export function syncChapter(chapter: Chapter): Promise<void> {
 }
 
 export function syncScene(scene: Scene): Promise<void> {
-    return addToQueue(async () => {
+    return debouncedSync(`scene_${scene.id}`, async () => {
         const userId = await getCurrentUserId();
         if (!userId) return;
 
@@ -172,7 +191,7 @@ export function syncScene(scene: Scene): Promise<void> {
 }
 
 export function syncCodex(codex: CodexEntry): Promise<void> {
-    return addToQueue(async () => {
+    return debouncedSync(`codex_${codex.id}`, async () => {
         const userId = await getCurrentUserId();
         if (!userId) return;
 
@@ -235,4 +254,3 @@ export function deleteEntity(table: string, id: string) {
         }
     });
 }
-
