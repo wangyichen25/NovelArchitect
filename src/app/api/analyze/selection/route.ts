@@ -11,6 +11,10 @@ export async function POST(req: Request) {
 
     let model: any;
 
+    if (!apiKey && provider !== 'ollama') {
+        return new Response(JSON.stringify({ error: "Missing API Key" }), { status: 401 });
+    }
+
     if (provider === 'ollama') {
         const ollama = createOllama();
         model = ollama(modelId || 'llama3');

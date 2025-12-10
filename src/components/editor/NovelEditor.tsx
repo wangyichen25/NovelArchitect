@@ -193,207 +193,26 @@ export default function NovelEditor({ initialContent, onUpdate, sceneId }: Novel
         if (!editor || !novelId) return;
         setIsAnalyzing(true);
         try {
-            const text = textToAnalyze;
-            if (text.length < 10) { // Lower limit for selection
-                alert("Selected text is too short for analysis.");
-                setIsAnalyzing(false);
-                return;
-            }
+            const provider = localStorage.getItem('novel-architect-provider') || 'openai';
+            const model = localStorage.getItem(`novel-architect-model-${provider}`);
 
-            // 1. Retrieve & Decrypt Key
-            // PRIORITY: Synced Project Settings > Local Global Settings
-            let provider = localStorage.getItem('novel-architect-provider') || 'openai';
-            let model = localStorage.getItem(`novel-architect-model-${provider}`);
-            let apiKey = '';
+            // Delegate to AnalysisService
+            const { AnalysisService } = await import("@/lib/services/analysis");
+            const result = await AnalysisService.analyzeText(novelId, textToAnalyze, {
+                provider,
+                model: model || undefined,
+            }, (status) => console.log(status));
 
-            // Try to load from Project Settings
-            const novel = await db.novels.get(novelId);
-            if (novel && novel.settings) {
-                if (novel.settings.aiProvider) provider = novel.settings.aiProvider;
-                if (novel.settings.activeAiModel) model = novel.settings.activeAiModel;
-            }
-
-            if (provider !== 'ollama') {
-                // Key Retrieval Logic
-                const pin = localStorage.getItem('novel-architect-pin-hash');
-
-                // 1. Check Synced Encrypted Key
-                if (novel && novel.settings?.apiKey && pin) {
-                    const decrypted = await KeyChain.decrypt(novel.settings.apiKey, pin);
-                    if (decrypted) apiKey = decrypted;
-                }
-
-                // 2. Fallback to Local Storage Key if no synced key or decryption failed
-                if (!apiKey) {
-                    const encrypted = localStorage.getItem(`novel-architect-key-${provider}`);
-                    if (encrypted && pin) {
-                        const decrypted = await KeyChain.decrypt(encrypted, pin);
-                        if (decrypted) apiKey = decrypted;
-                    }
-                }
-
-                if (!apiKey) {
-                    alert("Could not decrypt API Key. Please ensure you have set it in Settings and your PIN matches.");
-                    setIsAnalyzing(false);
-                    return;
-                }
-            }
-
-            // 1a. Fetch Global Context (Novel Title + Act Summaries)
-            const acts = await db.acts.where({ novelId }).sortBy('order');
-
-            let globalContext = "";
-            if (novel) {
-                globalContext += `Novel Title: ${novel.title}\n`;
-            }
-            if (acts.length > 0) {
-                globalContext += "Acts Summary:\n" + acts.map(a => `- ${a.title}: ${a.summary}`).join('\n');
-            }
-
-            // 1b. Fetch Existing Entries (Context Injection)
-            const existingEntries = await db.codex.where({ novelId }).toArray();
-            const existingNamesList = existingEntries.map(e => {
-                const aliases = e.aliases && e.aliases.length > 0 ? ` (Aliases: ${e.aliases.join(', ')})` : '';
-                return `- ${e.name}${aliases} [${e.category}]`;
-            }).join('\n');
-
-            // 2. Call API
-            const response = await fetch('/api/analyze', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-novel-architect-key': apiKey
-                },
-                body: JSON.stringify({
-                    text,
-                    provider,
-                    model,
-                    existingEntities: existingNamesList, // Pass context
-                    globalContext // Pass global context
-                })
-            });
-
-            if (!response.ok) {
-                const err = await response.json().catch(() => ({}));
-                throw new Error(err.error || `Analysis request failed: ${response.status}`);
-            }
-
-            const result = await response.json();
-
-            // 3. Process Results & Save to Codex
-            const newEntries: any[] = [];
-            const updatedEntries: any[] = [];
-
-            const normalize = (s: string) => s.toLowerCase().trim();
-            // Simplify for loose comparison (remove punctuation, extra spaces)
-            const simplify = (s: string) => s.toLowerCase().replace(/[^\w\s]|_/g, "").replace(/\s+/g, " ").trim();
-
-            // Map Name AND Aliases to Entity
-            const existingMap = new Map();
-            existingEntries.forEach(e => {
-                existingMap.set(normalize(e.name), e);
-                if (e.aliases) {
-                    e.aliases.forEach(a => existingMap.set(normalize(a), e));
-                }
-            });
-
-            // Helper to process items
-            const processItem = (item: any, cat: string) => {
-                const normName = normalize(item.name);
-                if (existingMap.has(normName)) {
-                    // UPDATE existing
-                    const existing = existingMap.get(normName)!;
-                    let changed = false;
-
-                    // Merge Aliases
-                    const newAliases = item.aliases || [];
-                    const currentAliases = new Set((existing.aliases || []).map(normalize));
-                    for (const a of newAliases) {
-                        if (!currentAliases.has(normalize(a))) {
-                            existing.aliases = [...(existing.aliases || []), a];
-                            changed = true;
-                        }
-                    }
-
-                    // Append/Update Description
-                    if (item.description && item.description.length > 5) {
-                        const simpleNew = simplify(item.description);
-                        const simpleExisting = simplify(existing.description || "");
-
-                        // Case 1: New description is better/longer and includes the old info (Superset)
-                        if (simpleNew.includes(simpleExisting) && simpleNew.length > simpleExisting.length) {
-                            existing.description = item.description;
-                            changed = true;
-                        }
-                        // Case 2: Old includes new (Subset) -> Do nothing.
-                        else if (simpleExisting.includes(simpleNew)) {
-                            // no-op
-                        }
-                        // Case 3: New info is disjoint/different -> Append
-                        else {
-                            existing.description = (existing.description ? existing.description + "\n\n" : "") + item.description;
-                            changed = true;
-                        }
-                    }
-
-                    // Merge Relations
-                    if (item.relations && item.relations.length > 0) {
-                        const currentRelations = new Set((existing.relations || []).map((r: any) => normalize(r.target) + "|" + normalize(r.relationship)));
-                        for (const r of item.relations) {
-                            const key = normalize(r.target) + "|" + normalize(r.relationship);
-                            if (!currentRelations.has(key)) {
-                                existing.relations = [...(existing.relations || []), r];
-                                changed = true;
-                            }
-                        }
-                    }
-
-                    if (item.visualSummary) {
-                        existing.visualSummary = item.visualSummary;
-                        changed = true;
-                    }
-
-                    if (changed) {
-                        if (!updatedEntries.includes(existing)) {
-                            updatedEntries.push(existing);
-                        }
-                    }
-                } else {
-                    // CREATE new
-                    const newEntry = {
-                        id: uuidv4(),
-                        novelId,
-                        category: cat,
-                        name: item.name,
-                        description: item.description || '',
-                        aliases: item.aliases || [],
-                        relations: item.relations || [],
-                        visualSummary: item.visualSummary || ""
-                    };
-                    newEntries.push(newEntry);
-                    existingMap.set(normName, newEntry as any); // Prevent dupes in same batch
-                }
-            };
-
-            if (result.characters) result.characters.forEach((c: any) => processItem(c, 'character'));
-            if (result.locations) result.locations.forEach((l: any) => processItem(l, 'location'));
-            if (result.objects) result.objects.forEach((o: any) => processItem(o, 'object'));
-            if (result.lore) result.lore.forEach((l: any) => processItem(l, 'lore'));
-
-            if (newEntries.length > 0) await db.codex.bulkAdd(newEntries);
-            if (updatedEntries.length > 0) await db.codex.bulkPut(updatedEntries);
-
-            if (newEntries.length > 0 || updatedEntries.length > 0) {
-                alert(`Analysis complete! Added ${newEntries.length} new, Updated ${updatedEntries.length} entries.`);
-                // Trigger Scan automatically
+            if (result.new > 0 || result.updated > 0) {
+                alert(`Analysis complete! Added ${result.new} new, Updated ${result.updated} entries.`);
                 await handleScan();
             } else {
                 alert("Analysis complete. No new information found.");
             }
 
-        } catch (e) {
+        } catch (e: any) {
             console.error(e);
-            alert("Analysis failed. See console for details.");
+            alert("Analysis failed: " + (e.message || "Unknown Error"));
         } finally {
             setIsAnalyzing(false);
         }
@@ -420,12 +239,12 @@ export default function NovelEditor({ initialContent, onUpdate, sceneId }: Novel
 
         setIsAnalyzing(true);
         try {
-            // 1. Retrieve Config (Synced > Local)
+            // 1. Retrieve Config
             let provider = localStorage.getItem('novel-architect-provider') || 'openai';
             let model = localStorage.getItem(`novel-architect-model-${provider}`);
             let apiKey = '';
 
-            // Try to load from Project Settings
+            // Try to load from Project Settings (Legacy/Override)
             const novel = await db.novels.get(novelId);
             if (novel && novel.settings) {
                 if (novel.settings.aiProvider) provider = novel.settings.aiProvider;
@@ -433,20 +252,13 @@ export default function NovelEditor({ initialContent, onUpdate, sceneId }: Novel
             }
 
             if (provider !== 'ollama') {
-                const pin = localStorage.getItem('novel-architect-pin-hash');
-
-                // 1. Check Synced Encrypted Key
-                if (novel && novel.settings?.apiKey && pin) {
-                    const decrypted = await KeyChain.decrypt(novel.settings.apiKey, pin);
-                    if (decrypted) apiKey = decrypted;
-                }
+                const { AnalysisService } = await import("@/lib/services/analysis");
+                apiKey = await AnalysisService.getApiKey(novelId, provider) || '';
 
                 if (!apiKey) {
-                    const encrypted = localStorage.getItem(`novel-architect-key-${provider}`);
-                    if (encrypted && pin) {
-                        const decrypted = await KeyChain.decrypt(encrypted, pin);
-                        if (decrypted) apiKey = decrypted;
-                    }
+                    alert("Missing API Key. Please check your Global Settings.");
+                    setIsAnalyzing(false);
+                    return;
                 }
             }
 
@@ -682,7 +494,7 @@ export default function NovelEditor({ initialContent, onUpdate, sceneId }: Novel
 
         setIsAnalyzing(true); // Reuse loading state
         try {
-            // PRIORITY: Synced Project Settings > Local Global Settings
+            // 1. Retrieve Config
             let provider = localStorage.getItem('novel-architect-provider') || 'openai';
             let model = localStorage.getItem(`novel-architect-model-${provider}`);
             let apiKey = '';
@@ -695,21 +507,13 @@ export default function NovelEditor({ initialContent, onUpdate, sceneId }: Novel
             }
 
             if (provider !== 'ollama') {
-                const pin = localStorage.getItem('novel-architect-pin-hash');
+                const { AnalysisService } = await import("@/lib/services/analysis");
+                apiKey = await AnalysisService.getApiKey(novelId, provider) || '';
 
-                // 1. Check Synced Encrypted Key
-                if (novel && novel.settings?.apiKey && pin) {
-                    const decrypted = await KeyChain.decrypt(novel.settings.apiKey, pin);
-                    if (decrypted) apiKey = decrypted;
-                }
-
-                // 2. Fallback to Local Storage Key
                 if (!apiKey) {
-                    const encrypted = localStorage.getItem(`novel-architect-key-${provider}`);
-                    if (encrypted && pin) {
-                        const decrypted = await KeyChain.decrypt(encrypted, pin);
-                        if (decrypted) apiKey = decrypted;
-                    }
+                    alert("Missing API Key. Please check your Global Settings.");
+                    setIsAnalyzing(false);
+                    return;
                 }
             }
 
@@ -736,9 +540,9 @@ export default function NovelEditor({ initialContent, onUpdate, sceneId }: Novel
                 editor.chain().insertContentAt(from, data.text).run();
             }
 
-        } catch (e) {
+        } catch (e: any) {
             console.error(e);
-            alert("AI Writing failed.");
+            alert("AI Writing failed: " + e.message);
         } finally {
             setIsAnalyzing(false);
         }
@@ -755,7 +559,7 @@ export default function NovelEditor({ initialContent, onUpdate, sceneId }: Novel
 
         setIsAnalyzing(true);
         try {
-            // PRIORITY: Synced Project Settings > Local Global Settings
+            // 1. Retrieve Config
             let provider = localStorage.getItem('novel-architect-provider') || 'openai';
             let model = localStorage.getItem(`novel-architect-model-${provider}`);
             let apiKey = '';
@@ -768,21 +572,13 @@ export default function NovelEditor({ initialContent, onUpdate, sceneId }: Novel
             }
 
             if (provider !== 'ollama') {
-                const pin = localStorage.getItem('novel-architect-pin-hash');
+                const { AnalysisService } = await import("@/lib/services/analysis");
+                apiKey = await AnalysisService.getApiKey(novelId, provider) || '';
 
-                // 1. Check Synced Encrypted Key
-                if (novel && novel.settings?.apiKey && pin) {
-                    const decrypted = await KeyChain.decrypt(novel.settings.apiKey, pin);
-                    if (decrypted) apiKey = decrypted;
-                }
-
-                // 2. Fallback to Local Storage Key
                 if (!apiKey) {
-                    const encrypted = localStorage.getItem(`novel-architect-key-${provider}`);
-                    if (encrypted && pin) {
-                        const decrypted = await KeyChain.decrypt(encrypted, pin);
-                        if (decrypted) apiKey = decrypted;
-                    }
+                    alert("Missing API Key. Please check your Global Settings.");
+                    setIsAnalyzing(false);
+                    return;
                 }
             }
 
@@ -809,9 +605,9 @@ export default function NovelEditor({ initialContent, onUpdate, sceneId }: Novel
                 // Restore selection range then replace
                 editor.chain().setTextSelection({ from, to }).insertContent(data.text).run();
             }
-        } catch (e) {
+        } catch (e: any) {
             console.error(e);
-            alert("Rephrase failed.");
+            alert("Rephrase failed: " + e.message);
         } finally {
             setIsAnalyzing(false);
         }

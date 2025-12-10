@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Checkbox } from "@/components/ui/checkbox-input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Play, CheckCircle2 } from "lucide-react";
 import { db } from "@/lib/db";
@@ -167,17 +167,21 @@ export default function BatchExtractDialog({ open, onOpenChange }: { open: boole
         setProgress({ current: 0, total: scenesToProcess.length, message: "Initializing..." });
 
         try {
-            // Get Settings once
-            const settings = await db.novels.get(novelId);
-            const provider = settings?.settings?.aiProvider || 'openai';
-            const model = settings?.settings?.activeAiModel;
+            // Get Settings (Global)
+            const provider = localStorage.getItem('novel-architect-provider') || 'openai';
+            const model = localStorage.getItem(`novel-architect-model-${provider}`);
+            // Use AnalysisService to get key (checks Profiles > LocalStorage)
             const apiKey = await AnalysisService.getApiKey(novelId, provider);
 
             if (!apiKey && provider !== 'ollama') {
-                throw new Error("Missing API Key");
+                throw new Error("Missing API Key. Please check Global Settings.");
             }
 
-            const analysisSettings = { provider, model, apiKey: apiKey || undefined };
+            const analysisSettings = {
+                provider,
+                model: model || undefined,
+                apiKey: apiKey || undefined
+            };
 
             let totalNew = 0;
             let totalUpdated = 0;

@@ -9,6 +9,7 @@ import { db } from "@/lib/db";
 import { v4 as uuidv4 } from "uuid";
 import { Trash2, Save, Copy, Loader2, Image as ImageIcon, X, Merge } from "lucide-react";
 import { KeyChain } from "@/lib/ai/keychain";
+import { AnalysisService } from "@/lib/services/analysis";
 import MergeCodexDialog from "./MergeCodexDialog";
 
 export default function EntityCard({ entry, onSave, onDelete }: { entry: CodexEntry, onSave: () => void, onDelete: () => void }) {
@@ -117,18 +118,13 @@ export default function EntityCard({ entry, onSave, onDelete }: { entry: CodexEn
         setIsGenerating(true);
         try {
             // Decrypt API Key
-            const encrypted = localStorage.getItem('novel-architect-key-openrouter');
-            const pin = localStorage.getItem('novel-architect-pin-hash');
+            // Note: Currently defaulting to OpenRouter key for image gen as per legacy logic, 
+            // but ideally this should depend on selectedModel's provider.
+            // AnalysisService.getApiKey checks Profiles > LocalStorage.
+            const apiKey = await AnalysisService.getApiKey(entry.novelId || 'global', 'openrouter');
 
-            if (!encrypted || !pin) {
-                alert("Please configure OpenRouter API Key in Settings first.");
-                setIsGenerating(false);
-                return;
-            }
-
-            const apiKey = await KeyChain.decrypt(encrypted, pin);
             if (!apiKey) {
-                alert("Could not decrypt API Key.");
+                alert("Please configure OpenRouter API Key in Settings first (Images currently require OpenRouter).");
                 setIsGenerating(false);
                 return;
             }

@@ -10,11 +10,13 @@ export interface Novel {
 
 export interface ProjectSettings {
     theme: 'light' | 'dark' | 'system';
-    aiProvider: 'openai' | 'anthropic' | 'ollama' | 'openrouter';
-    apiKey?: string; // Encrypted or stored locally only
+    /** @deprecated Moved to Global/Profile Settings */
+    aiProvider?: 'openai' | 'anthropic' | 'ollama' | 'openrouter';
+    /** @deprecated Moved to Global/Profile Settings */
+    apiKey?: string;
     imageStyles?: string[]; // Custom presets for image generation
     lastActiveSceneId?: string | null; // Syncs cursor position
-    activeAiModel?: string; // Syncs model selection
+    activeAiModel?: string; // Syncs model selection (Can still be per-project if desired, but currently we made it global. Leaving optional)
 }
 
 export interface Act {

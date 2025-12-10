@@ -12,27 +12,32 @@ export interface AnalysisSettings {
 export class AnalysisService {
 
     static async getApiKey(novelId: string, provider: string): Promise<string | null> {
-        // PRIORITY: Synced Project Settings > Local Global Settings
+        // PRIORITY: Account Settings (Cloud) > Local Storage (Global)
         let apiKey = '';
-        const novel = await db.novels.get(novelId);
         const pin = localStorage.getItem('novel-architect-pin-hash');
 
-        if (provider !== 'ollama') {
-            // 1. Check Synced Encrypted Key
-            if (novel && novel.settings?.apiKey && pin) {
-                const decrypted = await KeyChain.decrypt(novel.settings.apiKey, pin);
-                if (decrypted) apiKey = decrypted;
-            }
+        if (provider === 'ollama') return '';
 
-            // 2. Fallback to Local Storage Key
-            if (!apiKey) {
-                const encrypted = localStorage.getItem(`novel-architect-key-${provider}`);
-                if (encrypted && pin) {
-                    const decrypted = await KeyChain.decrypt(encrypted, pin);
-                    if (decrypted) apiKey = decrypted;
-                }
+        // 1. Check Supabase User Profile
+        const { createClient } = await import('@/lib/supabase/client');
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (user) {
+            const { data: profile } = await supabase.from('profiles').select('settings').eq('id', user.id).single();
+            if (profile && profile.settings && profile.settings.apiKey && pin) {
+                const decrypted = await KeyChain.decrypt(profile.settings.apiKey, pin);
+                if (decrypted) return decrypted;
             }
         }
+
+        // 2. Fallback to Local Storage Key
+        const encrypted = localStorage.getItem(`novel-architect-key-${provider}`);
+        if (encrypted && pin) {
+            const decrypted = await KeyChain.decrypt(encrypted, pin);
+            if (decrypted) apiKey = decrypted;
+        }
+
         return apiKey;
     }
 

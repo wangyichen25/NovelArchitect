@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useProjectStore } from "@/hooks/useProject";
 import { KeyChain } from "@/lib/ai/keychain";
+import { createClient } from "@/lib/supabase/client"; // [NEW] Sync support
 import { Settings, Lock, Key, CheckCircle } from "lucide-react";
 import {
     Dialog,
@@ -25,8 +26,9 @@ export default function SettingsDialog() {
     const [model, setModel] = useState("");
     const [pin, setPin] = useState("");
     const [isSaved, setIsSaved] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
-    // [NEW] Attempt to get current novel context
+    // [NEW] Attempt to get current novel context just for UI labeling, not logic
     const params = useParams();
     const novelId = params?.id as string | undefined;
 
@@ -34,58 +36,58 @@ export default function SettingsDialog() {
         if (isOpen) {
             loadSettings();
         }
-    }, [isOpen, novelId]);
+    }, [isOpen]);
 
     const loadSettings = async () => {
-        // 1. Try to load from Novel DB first (Sync source)
-        if (novelId) {
-            try {
-                // Dynamically import db/index to ensure no SSR issues if any (though client comp is fine)
-                // actually we can import at top level if 'use client'
-                const { db } = await import("@/lib/db");
-                const novel = await db.novels.get(novelId);
+        setIsLoading(true);
+        try {
+            // 1. Check Supabase (Cloud) if logged in
+            const supabase = createClient();
+            const { data: { user } } = await supabase.auth.getUser();
 
-                if (novel && novel.settings) {
-                    if (novel.settings.aiProvider) setProvider(novel.settings.aiProvider);
-                    if (novel.settings.activeAiModel) setModel(novel.settings.activeAiModel);
-                    // For API Key, we might store the encrypted version in settings.apiKey?
-                    // Schema says: apiKey?: string; // Encrypted or stored locally only
-                    if (novel.settings.apiKey) {
-                        // We have an encrypted key blob. We need the PIN.
-                        // PIN is strictly local (localStorage) for security, we never sync the PIN.
+            if (user) {
+                const { data: profile } = await supabase.from('profiles').select('settings').eq('id', user.id).single();
+                if (profile && profile.settings) {
+                    const s = profile.settings;
+                    if (s.provider) setProvider(s.provider);
+                    if (s.model) setModel(s.model);
+                    // Encrypted Key
+                    if (s.apiKey) {
                         const storedPin = localStorage.getItem('novel-architect-pin-hash');
                         if (storedPin) {
                             setPin(storedPin);
-                            const decrypted = await KeyChain.decrypt(novel.settings.apiKey, storedPin);
+                            const decrypted = await KeyChain.decrypt(s.apiKey, storedPin);
                             if (decrypted) setApiKey(decrypted);
                         }
                     }
-                    return; // Successfully loaded from DB
+                    setIsLoading(false);
+                    return; // Loaded from Cloud
                 }
-            } catch (e) {
-                console.error("Failed to load settings from DB", e);
             }
-        }
 
-        // 2. Fallback to LocalStorage (Global/Local-only defaults)
-        const storedProvider = localStorage.getItem('novel-architect-provider') as any;
-        if (storedProvider) setProvider(storedProvider);
+            // 2. Fallback to LocalStorage (Global)
+            const storedProvider = localStorage.getItem('novel-architect-provider') as any;
+            if (storedProvider) setProvider(storedProvider);
 
-        const storedModel = localStorage.getItem(`novel-architect-model-${storedProvider || 'openai'}`);
-        if (storedModel) setModel(storedModel);
+            const storedModel = localStorage.getItem(`novel-architect-model-${storedProvider || 'openai'}`);
+            if (storedModel) setModel(storedModel);
 
-        const storedPin = localStorage.getItem('novel-architect-pin-hash');
-        if (storedPin) {
-            setPin(storedPin);
-            const currentProvider = storedProvider || provider;
-            if (currentProvider !== 'ollama') {
-                const encrypted = localStorage.getItem(`novel-architect-key-${currentProvider}`);
-                if (encrypted) {
-                    KeyChain.decrypt(encrypted, storedPin).then(decrypted => {
+            const storedPin = localStorage.getItem('novel-architect-pin-hash');
+            if (storedPin) {
+                setPin(storedPin);
+                const currentProvider = storedProvider || provider;
+                if (currentProvider !== 'ollama') {
+                    const encrypted = localStorage.getItem(`novel-architect-key-${currentProvider}`);
+                    if (encrypted) {
+                        const decrypted = await KeyChain.decrypt(encrypted, storedPin);
                         if (decrypted) setApiKey(decrypted);
-                    });
+                    }
                 }
             }
+        } catch (e) {
+            console.error("Failed to load settings:", e);
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -96,39 +98,66 @@ export default function SettingsDialog() {
     }, [provider]);
 
     const handleSave = async () => {
-        let encryptedKey = "";
+        setIsLoading(true);
+        try {
+            let encryptedKey = "";
 
-        // 1. Encrypt Key if needed
-        if (provider !== 'ollama') {
-            if (!apiKey || !pin) {
-                alert("API Key and PIN are required for cloud providers.");
-                return;
+            // 1. Encrypt Key if needed
+            if (provider !== 'ollama') {
+                if (!apiKey || !pin) {
+                    alert("API Key and PIN are required for cloud providers.");
+                    setIsLoading(false);
+                    return;
+                }
+                encryptedKey = await KeyChain.encrypt(apiKey, pin);
+
+                // Always update local cache too for redundancy
+                localStorage.setItem(`novel-architect-key-${provider}`, encryptedKey);
+                localStorage.setItem(`novel-architect-pin-hash`, pin);
             }
-            encryptedKey = await KeyChain.encrypt(apiKey, pin);
 
-            // Always update local cache too for redundancy
-            localStorage.setItem(`novel-architect-key-${provider}`, encryptedKey);
-            localStorage.setItem(`novel-architect-pin-hash`, pin);
+            // Update LocalStorage (Global)
+            localStorage.setItem(`novel-architect-model-${provider}`, model);
+            localStorage.setItem('novel-architect-provider', provider);
+
+            // Update Global Store for immediate UI reaction
+            useProjectStore.getState().setActiveAiModel(model);
+
+            // 2. Save to Supabase (Sync)
+            const supabase = createClient();
+            const { data: { user } } = await supabase.auth.getUser();
+
+            if (user) {
+                const settingsPayload = {
+                    provider,
+                    model,
+                    apiKey: encryptedKey || undefined,
+                    lastModified: Date.now()
+                };
+
+                const { error } = await supabase.from('profiles').upsert({
+                    id: user.id,
+                    settings: settingsPayload,
+                    updated_at: new Date().toISOString()
+                });
+
+                if (error) {
+                    console.error("Cloud Save Error:", error);
+                    if (error.code === '42P01') {
+                        alert("Settings saved locally! (Cloud sync failed: Profiles table missing)");
+                    }
+                }
+            }
+
+            setIsSaved(true);
+            setTimeout(() => setIsSaved(false), 2000);
+            setTimeout(() => setIsOpen(false), 1000);
+        } catch (e) {
+            console.error("Save failed", e);
+            alert("Failed to save settings.");
+        } finally {
+            setIsLoading(false);
         }
-
-        // Update LocalStorage (Global)
-        localStorage.setItem(`novel-architect-model-${provider}`, model);
-        localStorage.setItem('novel-architect-provider', provider);
-
-        // 2. Save to Novel DB (Sync)
-        if (novelId) {
-            const { db } = await import("@/lib/db");
-            await db.novels.update(novelId, {
-                'settings.aiProvider': provider,
-                'settings.activeAiModel': model,
-                'settings.apiKey': encryptedKey || undefined, // Sync the encrypted blob!
-                lastModified: Date.now()
-            });
-        }
-
-        setIsSaved(true);
-        setTimeout(() => setIsSaved(false), 2000);
-        setTimeout(() => setIsOpen(false), 1000);
     };
 
     return (
@@ -140,10 +169,10 @@ export default function SettingsDialog() {
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
-                    <DialogTitle>AI Settings {novelId ? '(Project)' : '(Global)'}</DialogTitle>
+                    <DialogTitle>Global AI Settings</DialogTitle>
                     <DialogDescription>
                         Configure your AI provider and API keys.
-                        {novelId ? " Settings will be synced to this project." : " Settings are stored locally."}
+                        settings are synced to your account.
                         <br />
                         <span className="text-xs text-muted-foreground">Keys are encrypted with your PIN before syncing.</span>
                     </DialogDescription>
@@ -155,6 +184,7 @@ export default function SettingsDialog() {
                             className="col-span-3 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors"
                             value={provider}
                             onChange={(e) => setProvider(e.target.value as any)}
+                            disabled={isLoading}
                         >
                             <option value="openai">OpenAI</option>
                             <option value="anthropic">Anthropic</option>
@@ -173,6 +203,7 @@ export default function SettingsDialog() {
                                     onChange={(e) => setApiKey(e.target.value)}
                                     placeholder="sk-..."
                                     className="col-span-3"
+                                    disabled={isLoading}
                                 />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
@@ -186,6 +217,7 @@ export default function SettingsDialog() {
                                                 provider === 'openrouter' ? 'anthropic/claude-3.5-sonnet' : 'Model ID'
                                     }
                                     className="col-span-3"
+                                    disabled={isLoading}
                                 />
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
@@ -199,6 +231,7 @@ export default function SettingsDialog() {
                                         onChange={(e) => setPin(e.target.value)}
                                         placeholder="Session encryption PIN"
                                         maxLength={6}
+                                        disabled={isLoading}
                                     />
                                     <p className="text-[10px] text-muted-foreground mt-1">Used to encrypt your key locally.</p>
                                 </div>
@@ -214,13 +247,14 @@ export default function SettingsDialog() {
                                 onChange={(e) => setModel(e.target.value)}
                                 placeholder="llama3"
                                 className="col-span-3"
+                                disabled={isLoading}
                             />
                         </div>
                     )}
                 </div>
                 <DialogFooter>
-                    <Button onClick={handleSave}>
-                        {isSaved ? <><CheckCircle className="mr-2 h-4 w-4" /> Saved</> : "Save Settings"}
+                    <Button onClick={handleSave} disabled={isLoading}>
+                        {isSaved ? <><CheckCircle className="mr-2 h-4 w-4" /> Saved</> : isLoading ? "Saving..." : "Save Settings"}
                     </Button>
                 </DialogFooter>
             </DialogContent>

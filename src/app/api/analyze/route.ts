@@ -7,10 +7,10 @@ import { createOllama } from 'ollama-ai-provider';
 export async function POST(req: Request) {
     const { text, provider, model: modelId, existingEntities, globalContext } = await req.json();
 
-    const apiKey = req.headers.get('x-novel-architect-key');
+    const apiKey = req.headers.get('x-novel-architect-key') || undefined;
 
-    if (!apiKey) {
-        return new Response(JSON.stringify({ error: "Missing API Key" }), { status: 401 });
+    if (!apiKey && provider !== 'ollama') {
+        return new Response(JSON.stringify({ error: "Missing API Key. Please configure your settings." }), { status: 401 });
     }
 
     if (!text) {
