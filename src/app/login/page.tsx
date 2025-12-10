@@ -60,10 +60,28 @@ export default function LoginPage() {
                 router.refresh()
             }
         } catch (err: any) {
-            if (err.message.includes('Email not confirmed')) {
+            console.error("Login error:", err);
+            let errorMessage = 'An unexpected error occurred';
+
+            if (err) {
+                if (typeof err === 'string') {
+                    errorMessage = err;
+                } else if (err.message) {
+                    errorMessage = err.message;
+                } else {
+                    try {
+                        errorMessage = JSON.stringify(err);
+                        if (errorMessage === '{}') errorMessage = 'Error: Empty error object returned from Supabase';
+                    } catch (e) {
+                        errorMessage = 'Unknown error object';
+                    }
+                }
+            }
+
+            if (errorMessage.includes('Email not confirmed')) {
                 setError('Email confirmation is still enabled in Supabase. Please go to Supabase > Auth > Providers > Email, disable "Confirm email", delete this user in Supabase, and Sign Up again.')
             } else {
-                setError(err.message)
+                setError(errorMessage)
             }
         } finally {
             setIsLoading(false)
