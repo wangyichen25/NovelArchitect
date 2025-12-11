@@ -10,6 +10,7 @@ import { db } from "@/lib/db";
 import { Act, Scene } from "@/lib/db/schema";
 import { AnalysisService } from "@/lib/services/analysis";
 import { useParams } from "next/navigation";
+import { useTaskQueue } from "@/components/providers/TaskQueueProvider";
 
 interface TreeNode {
     id: string;
@@ -30,6 +31,7 @@ export default function BatchExtractDialog({ open, onOpenChange }: { open: boole
     const [progress, setProgress] = useState<{ current: number, total: number, message: string } | null>(null);
     const [logs, setLogs] = useState<string[]>([]);
     const abortRef = useRef(false);
+    const { addTask } = useTaskQueue();
 
     useEffect(() => {
         if (open && novelId) {
@@ -43,6 +45,34 @@ export default function BatchExtractDialog({ open, onOpenChange }: { open: boole
             abortRef.current = false;
         }
     }, [open]);
+
+    const extractTextFromContent = (content: any): string => {
+        if (!content) return "";
+
+        // 1. If it's a string, assume HTML (legacy/import)
+        if (typeof content === 'string') {
+            const div = document.createElement('div');
+            div.innerHTML = content;
+            return div.innerText || "";
+        }
+
+        // 2. If it's a Tiptap JSON object
+        if (typeof content === 'object') {
+            // Recursive extractor
+            let text = "";
+            if (content.text) {
+                text += content.text;
+            }
+            if (content.content && Array.isArray(content.content)) {
+                content.content.forEach((child: any) => {
+                    text += extractTextFromContent(child) + "\n";
+                });
+            }
+            return text.trim();
+        }
+
+        return "";
+    };
 
     const loadStructure = async () => {
         setLoading(true);
@@ -196,41 +226,45 @@ export default function BatchExtractDialog({ open, onOpenChange }: { open: boole
                 setProgress({ current: i + 1, total: scenesToProcess.length, message: `Analyzing: ${scene.title}` });
 
                 try {
-                    // Convert Tiptap HTML/JSON to plain text.
-                    // Stored content is HTML string in current schema based on import logic?
-                    // Wait, `NovelEditor` initializes with HTML string but saves JSON usually?
-                    // Let's check Schema. `content: any`.
-                    // In `ProjectDashboard` import logic: `content: htmlContent`.
-                    // So it's HTML string.
-                    // We need to strip tags.
-                    const div = document.createElement('div');
-                    // Check if content is string or object
-                    if (typeof scene.content === 'object') {
-                        // Tiptap JSON. Need complex parser or just simple recursive extract.
-                        // Quick hack for JSON: JSON.stringify and regex? No.
-                        // Let's assume for now it's HTML string as per `import` logic being most common for bulk content.
-                        // If it's JSON, we might skip or try to handle.
-                        div.innerText = "Complex content format (JSON)"; // fallback
-                    } else {
-                        div.innerHTML = scene.content || "";
-                    }
-
-                    const text = div.innerText; // Get plain text
+                    const text = extractTextFromContent(scene.content);
 
                     if (text.length < 50) {
-                        setLogs(prev => [...prev, `Skipped ${scene.title}: Too short`]);
+                        setLogs(prev => [...prev, `Skipped ${scene.title}: Too short (${text.length} chars)`]);
                         continue;
                     }
 
-                    const result = await AnalysisService.analyzeText(novelId, text, analysisSettings);
-                    totalNew += result.new;
-                    totalUpdated += result.updated;
-                    setLogs(prev => [...prev, `✓ ${scene.title}: +${result.new} new, ~${result.updated} updated`]);
+                    await addTask(
+                        'analysis',
+                        `Batch: ${scene.title}`,
+                        async (signal) => {
+                            return await AnalysisService.analyzeText(novelId, text, analysisSettings, undefined, signal);
+                        },
+                        async (result) => {
+                            totalNew += result.new;
+                            totalUpdated += result.updated;
+                            setLogs(prev => [...prev, `✓ ${scene.title}: +${result.new} new, ~${result.updated} updated`]);
 
-                    // Update scene lastAnalyzed in metadata
-                    // We need to merge with existing metadata
-                    const currentMeta = scene.metadata || { povCharacterId: null, locationId: null, timeOfDay: '', wordCount: 0, status: 'draft' };
-                    await db.scenes.update(scene.id, { metadata: { ...currentMeta, lastAnalyzed: Date.now() } });
+                            // Update scene lastAnalyzed in metadata
+                            const currentMeta = scene.metadata || { povCharacterId: null, locationId: null, timeOfDay: '', wordCount: 0, status: 'draft' };
+                            await db.scenes.update(scene.id, { metadata: { ...currentMeta, lastAnalyzed: Date.now() } });
+                        },
+                        (e) => {
+                            throw e; // Propagate to outer catch
+                        }
+                    );
+
+                    // const result = await AnalysisService.analyzeText(novelId, text, analysisSettings); 
+                    // Moved logic to onSuccess/task
+                    // Note: addTask awaits the taskFn, but we wait for valid result? 
+                    // addTask returns Promise<void>. It resolves when task finishes/failed.
+                    // The onSuccess runs before addTask resolves? 
+                    // Our TaskQueueProvider implementation:
+                    // await taskFn() -> if success -> onSuccess -> resolve
+                    // if error -> onError -> catch block -> resolve (if error handled?)
+                    // The provider implementation catches error and calls onError, but DOES NOT rethrow unless we want it to?
+                    // The provider implementation swallows error after onError.
+                    // So `addTask` usually resolves to void.
+                    // But we rely on `totalNew` mutation. This works because it's in closure.
 
                 } catch (e: any) {
                     console.error(e);

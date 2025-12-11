@@ -16,6 +16,7 @@ import { EntityMark } from '@/components/editor/extensions/EntityMark';
 import { SlashCommand, getSuggestionItems, renderItems } from '@/components/editor/extensions/SlashCommand';
 import Placeholder from '@tiptap/extension-placeholder';
 import { RewriteDialog } from './RewriteDialog';
+import { useTaskQueue } from '@/components/providers/TaskQueueProvider';
 
 interface NovelEditorProps {
     initialContent?: any;
@@ -42,7 +43,8 @@ const NovelEditor = forwardRef<NovelEditorHandle, NovelEditorProps>(({ initialCo
     const params = useParams();
     const novelId = params.id as string;
     const [isScanning, setIsScanning] = useState(false);
-    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    // const [isAnalyzing, setIsAnalyzing] = useState(false); // Replaced by queue status
+    const { addTask } = useTaskQueue();
     const [hoveredEntity, setHoveredEntity] = useState<{ id: string; name: string; description: string; category: string; image?: string; x: number; y: number } | null>(null);
     const [isBubbleMenuOpen, setIsBubbleMenuOpen] = useState(false);
     const [bubbleMenuPos, setBubbleMenuPos] = useState({ x: 0, y: 0 });
@@ -245,34 +247,43 @@ const NovelEditor = forwardRef<NovelEditorHandle, NovelEditorProps>(({ initialCo
 
     const performAnalysis = async (textToAnalyze: string) => {
         if (!editor || !novelId) return;
-        setIsAnalyzing(true);
+
+        // Fetch scene info for better description
+        let sceneTitle = "Analysis";
         try {
-            const provider = localStorage.getItem('novel-architect-provider') || 'openai';
-            const model = localStorage.getItem(`novel-architect-model-${provider}`);
+            const scene = await db.scenes.get(sceneId);
+            if (scene) sceneTitle = `Analysis: ${scene.title}`;
+        } catch (e) { console.error("Failed to fetch scene for title", e); }
 
-            // Delegate to AnalysisService
-            const { AnalysisService } = await import("@/lib/services/analysis");
-            const result = await AnalysisService.analyzeText(novelId, textToAnalyze, {
-                provider,
-                model: model || undefined,
-            }, (status) => console.log(status));
+        await addTask(
+            'analysis',
+            sceneTitle,
+            async (signal) => {
+                const provider = localStorage.getItem('novel-architect-provider') || 'openai';
+                const model = localStorage.getItem(`novel-architect-model-${provider}`);
 
-            if (result.new > 0 || result.updated > 0) {
-                alert(`Analysis complete! Added ${result.new} new, Updated ${result.updated} entries.`);
-                await handleScan();
-            } else {
-                alert("Analysis complete. No new information found.");
+                // Delegate to AnalysisService
+                const { AnalysisService } = await import("@/lib/services/analysis");
+                return await AnalysisService.analyzeText(novelId, textToAnalyze, {
+                    provider,
+                    model: model || undefined,
+                }, (status) => console.log(status), signal);
+            },
+            async (result) => {
+                if (result.new > 0 || result.updated > 0) {
+                    alert(`Analysis complete! Added ${result.new} new, Updated ${result.updated} entries.`);
+                    await handleScan();
+                } else {
+                    alert("Analysis complete. No new information found.");
+                }
+                // Update Tracking
+                await db.scenes.update(sceneId, { "metadata.lastAnalyzed": Date.now() });
+            },
+            (err) => {
+                console.error(err);
+                if (err.name !== 'AbortError') alert("Analysis failed: " + (err.message || "Unknown Error"));
             }
-
-            // Mark as analyzed (Update Tracking)
-            await db.scenes.update(sceneId, { "metadata.lastAnalyzed": Date.now() });
-
-        } catch (e: any) {
-            console.error(e);
-            alert("Analysis failed: " + (e.message || "Unknown Error"));
-        } finally {
-            setIsAnalyzing(false);
-        }
+        );
     };
 
     const handleAnalyze = async () => {
@@ -289,139 +300,127 @@ const NovelEditor = forwardRef<NovelEditorHandle, NovelEditorProps>(({ initialCo
         }
 
         const selection = editor.state.doc.textBetween(from, to, ' ');
-        // Get surrounding context (e.g. 1000 chars before and after)
         const contextStart = Math.max(0, from - 1000);
         const contextEnd = Math.min(editor.state.doc.content.size, to + 1000);
         const context = editor.state.doc.textBetween(contextStart, contextEnd, '\n');
 
-        setIsAnalyzing(true);
-        try {
-            // 1. Retrieve Config
-            let provider = localStorage.getItem('novel-architect-provider') || 'openai';
-            let model = localStorage.getItem(`novel-architect-model-${provider}`);
-            let apiKey = '';
+        await addTask(
+            'analysis',
+            'Analyzing Selection...',
+            async (signal) => {
+                // 1. Retrieve Config
+                let provider = localStorage.getItem('novel-architect-provider') || 'openai';
+                let model = localStorage.getItem(`novel-architect-model-${provider}`);
+                let apiKey = '';
 
-            // Try to load from Project Settings (Legacy/Override)
-            const novel = await db.novels.get(novelId);
-            if (novel && novel.settings) {
-                // Legacy: if (novel.settings.aiProvider) provider = novel.settings.aiProvider;
-                if (novel.settings.activeAiModel) model = novel.settings.activeAiModel;
-            }
-            console.log("Analysis Config:", { provider, model });
-
-
-            if (provider !== 'ollama') {
-                const { AnalysisService } = await import("@/lib/services/analysis");
-                apiKey = await AnalysisService.getApiKey(novelId, provider) || '';
-
-                if (!apiKey) {
-                    alert("Missing API Key. Please check your Global Settings.");
-                    setIsAnalyzing(false);
-                    return;
+                const novel = await db.novels.get(novelId);
+                if (novel && novel.settings) {
+                    if (novel.settings.activeAiModel) model = novel.settings.activeAiModel;
                 }
-            }
 
-            // 1a. Fetch Context
-            const existingEntries = await db.codex.where({ novelId }).toArray();
-            const existingNamesList = existingEntries.map(e => {
-                const aliases = e.aliases && e.aliases.length > 0 ? ` (Aliases: ${e.aliases.join(', ')})` : '';
-                return `- ${e.name}${aliases} [${e.category}]`;
-            }).join('\n');
+                if (provider !== 'ollama') {
+                    const { AnalysisService } = await import("@/lib/services/analysis");
+                    apiKey = await AnalysisService.getApiKey(novelId, provider) || '';
 
-            // const novel = await db.novels.get(novelId); // Already fetched
-            let globalContext = novel ? `Novel: ${novel.title}` : "";
-
-            // 2. Call Selection API
-            const response = await fetch('/api/analyze/selection', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-novel-architect-key': apiKey
-                },
-                body: JSON.stringify({
-                    selection,
-                    context,
-                    provider,
-                    model,
-                    existingEntities: existingNamesList,
-                    globalContext
-                })
-            });
-
-            if (!response.ok) throw new Error("Selection analysis failed");
-            const result = await response.json();
-
-            if (result.entity) {
-                const e = result.entity;
-                const normalize = (s: string) => s.toLowerCase().trim();
-                const normName = normalize(e.name);
-
-                let targetEntry = existingEntries.find(ex => normalize(ex.name) === normName);
-
-                if (targetEntry) {
-                    // Update Existing
-                    let changed = false;
-                    // Check alias
-                    const currentAliases = new Set((targetEntry.aliases || []).map(normalize));
-                    // Add selection as alias if it's not the name
-                    if (normalize(selection) !== normName && !currentAliases.has(normalize(selection))) {
-                        targetEntry.aliases = [...(targetEntry.aliases || []), selection];
-                        changed = true;
+                    if (!apiKey) {
+                        throw new Error("Missing API Key. Please check your Global Settings.");
                     }
-                    if (e.aliases) {
-                        for (const a of e.aliases) {
-                            if (!currentAliases.has(normalize(a))) {
-                                targetEntry.aliases.push(a);
-                                changed = true;
+                }
+
+                // 1a. Fetch Context
+                const existingEntries = await db.codex.where({ novelId }).toArray();
+                const existingNamesList = existingEntries.map(e => {
+                    const aliases = e.aliases && e.aliases.length > 0 ? ` (Aliases: ${e.aliases.join(', ')})` : '';
+                    return `- ${e.name}${aliases} [${e.category}]`;
+                }).join('\n');
+
+                let globalContext = novel ? `Novel: ${novel.title}` : "";
+
+                const response = await fetch('/api/analyze/selection', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-novel-architect-key': apiKey
+                    },
+                    body: JSON.stringify({
+                        selection,
+                        context,
+                        provider,
+                        model,
+                        existingEntities: existingNamesList,
+                        globalContext
+                    }),
+                    signal
+                });
+
+                if (!response.ok) throw new Error("Selection analysis failed");
+                return { result: await response.json(), existingEntries };
+            },
+            async ({ result, existingEntries }) => {
+                // Logic to update DB
+                if (result.entity) {
+                    const e = result.entity;
+                    const normalize = (s: string) => s.toLowerCase().trim();
+                    const normName = normalize(e.name);
+
+                    let targetEntry = existingEntries.find(ex => normalize(ex.name) === normName);
+
+                    if (targetEntry) {
+                        // Update Existing
+                        let changed = false;
+                        const currentAliases = new Set((targetEntry.aliases || []).map(normalize));
+                        if (normalize(selection) !== normName && !currentAliases.has(normalize(selection))) {
+                            targetEntry.aliases = [...(targetEntry.aliases || []), selection];
+                            changed = true;
+                        }
+                        if (e.aliases) {
+                            for (const a of e.aliases) {
+                                if (!currentAliases.has(normalize(a))) {
+                                    targetEntry.aliases.push(a);
+                                    changed = true;
+                                }
                             }
                         }
-                    }
 
-                    // Merge Description
-                    if (e.description && !targetEntry.description.includes(e.description)) {
-                        targetEntry.description += "\n\n" + e.description;
-                        changed = true;
-                    }
+                        if (e.description && !targetEntry.description.includes(e.description)) {
+                            targetEntry.description += "\n\n" + e.description;
+                            changed = true;
+                        }
 
-                    if (changed) {
-                        await db.codex.put(targetEntry);
-                        alert(`Updated Codex Entry: ${targetEntry.name}`);
+                        if (changed) {
+                            await db.codex.put(targetEntry);
+                            alert(`Updated Codex Entry: ${targetEntry.name}`);
+                        } else {
+                            alert(`Entity "${targetEntry.name}" found, but no new info to add.`);
+                        }
+
                     } else {
-                        alert(`Entity "${targetEntry.name}" found, but no new info to add.`);
+                        // Create New
+                        const newEntry = {
+                            id: uuidv4(),
+                            novelId,
+                            category: e.category,
+                            name: e.name,
+                            description: e.description || '',
+                            aliases: e.aliases || [],
+                            relations: e.relations || [],
+                            visualSummary: e.visualSummary || ""
+                        };
+                        if (normalize(selection) !== normalize(e.name) && !newEntry.aliases.includes(selection)) {
+                            newEntry.aliases.push(selection);
+                        }
+                        await db.codex.add(newEntry);
+                        alert(`Created New Codex Entry: ${newEntry.name}`);
                     }
-
+                    await handleScan();
                 } else {
-                    // Create New
-                    const newEntry = {
-                        id: uuidv4(),
-                        novelId,
-                        category: e.category,
-                        name: e.name,
-                        description: e.description || '',
-                        aliases: e.aliases || [],
-                        relations: e.relations || [],
-                        visualSummary: e.visualSummary || ""
-                    };
-                    // Ensure selection is alias if different
-                    if (normalize(selection) !== normalize(e.name) && !newEntry.aliases.includes(selection)) {
-                        newEntry.aliases.push(selection);
-                    }
-
-                    await db.codex.add(newEntry);
-                    alert(`Created New Codex Entry: ${newEntry.name}`);
+                    alert("Could not identify an entity from selection.");
                 }
-
-                await handleScan();
-            } else {
-                alert("Could not identify an entity from selection.");
+            },
+            (e) => {
+                if (e.name !== 'AbortError') alert("Failed to add to Codex: " + e.message);
             }
-
-        } catch (e) {
-            console.error(e);
-            alert("Failed to add to Codex.");
-        } finally {
-            setIsAnalyzing(false);
-        }
+        );
     };
 
     const handleScan = useCallback(async () => {
@@ -553,131 +552,118 @@ const NovelEditor = forwardRef<NovelEditorHandle, NovelEditorProps>(({ initialCo
         const { from } = editor.state.selection;
         const context = editor.state.doc.textBetween(Math.max(0, from - 1000), Math.min(editor.state.doc.content.size, from + 1000), '\n');
 
-        setIsAnalyzing(true); // Reuse loading state
-        try {
-            // 1. Retrieve Config
-            let provider = localStorage.getItem('novel-architect-provider') || 'openai';
-            let model = localStorage.getItem(`novel-architect-model-${provider}`);
-            let apiKey = '';
+        await addTask(
+            'generation',
+            'AI Writing...',
+            async (signal) => {
+                // 1. Retrieve Config
+                let provider = localStorage.getItem('novel-architect-provider') || 'openai';
+                let model = localStorage.getItem(`novel-architect-model-${provider}`);
+                let apiKey = '';
 
-            // Try to load from Project Settings
-            const novel = await db.novels.get(novelId);
-            if (novel && novel.settings) {
-                // Legacy: if (novel.settings.aiProvider) provider = novel.settings.aiProvider;
-                if (novel.settings.activeAiModel) model = novel.settings.activeAiModel;
-            }
-            console.log("AI Write Config:", { provider, model });
-
-
-            if (provider !== 'ollama') {
-                const { AnalysisService } = await import("@/lib/services/analysis");
-                apiKey = await AnalysisService.getApiKey(novelId, provider) || '';
-
-                if (!apiKey) {
-                    alert("Missing API Key. Please check your Global Settings.");
-                    setIsAnalyzing(false);
-                    return;
+                // Try to load from Project Settings
+                const novel = await db.novels.get(novelId);
+                if (novel && novel.settings) {
+                    if (novel.settings.activeAiModel) model = novel.settings.activeAiModel;
                 }
+                console.log("AI Write Config:", { provider, model });
+
+                if (provider !== 'ollama') {
+                    const { AnalysisService } = await import("@/lib/services/analysis");
+                    apiKey = await AnalysisService.getApiKey(novelId, provider) || '';
+
+                    if (!apiKey) {
+                        throw new Error("Missing API Key. Please check your Global Settings.");
+                    }
+                }
+
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        instruction,
+                        context,
+                        provider,
+                        model,
+                        apiKey
+                    }),
+                    signal // Pass signal
+                });
+
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.error || `Generation failed: ${response.status} ${response.statusText}`);
+                }
+                return await response.json();
+            },
+            (data) => {
+                if (data.text) {
+                    editor.chain().insertContentAt(from, data.text).run();
+                }
+            },
+            (e) => {
+                if (e.name !== 'AbortError') alert("AI Writing failed: " + e.message);
             }
-
-            const response = await fetch('/api/generate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    instruction,
-                    context,
-                    provider,
-                    model,
-                    apiKey
-                })
-            });
-
-            if (!response.ok) {
-                const errData = await response.json().catch(() => ({}));
-                throw new Error(errData.error || `Generation failed: ${response.status} ${response.statusText}`);
-            }
-            const data = await response.json();
-
-            if (data.text) {
-                // Insert at the original position
-                editor.chain().insertContentAt(from, data.text).run();
-            }
-
-        } catch (e: any) {
-            console.error(e);
-            alert("AI Writing failed: " + e.message);
-        } finally {
-            setIsAnalyzing(false);
-        }
+        );
     };
 
     const performRewrite = async (instruction: string) => {
         if (!editor) return;
         const { from, to } = editor.state.selection;
-        // If selection is lost (e.g. clicking dialog), we might need to rely on saved selection or just ensure we don't lose it.
-        // Dialog usually steals focus?
-        // We might need to store the selection range when opening the dialog.
-        // But for now, let's assume Tiptap keeps selection or we recover it.
-
         const selectedText = editor.state.doc.textBetween(from, to, '\n');
 
-        setIsAnalyzing(true);
         setIsRewriteDialogOpen(false);
-        try {
-            // 1. Retrieve Config
-            let provider = localStorage.getItem('novel-architect-provider') || 'openai';
-            let model = localStorage.getItem(`novel-architect-model-${provider}`);
-            let apiKey = '';
 
-            // Try to load from Project Settings
-            const novel = await db.novels.get(novelId);
-            if (novel && novel.settings) {
-                // Legacy: if (novel.settings.aiProvider) provider = novel.settings.aiProvider;
-                if (novel.settings.activeAiModel) model = novel.settings.activeAiModel;
-            }
-            console.log("Rewrite Config:", { provider, model });
+        await addTask(
+            'generation',
+            'AI Rewrite...',
+            async (signal) => {
+                // 1. Retrieve Config
+                let provider = localStorage.getItem('novel-architect-provider') || 'openai';
+                let model = localStorage.getItem(`novel-architect-model-${provider}`);
+                let apiKey = '';
 
-
-            if (provider !== 'ollama') {
-                const { AnalysisService } = await import("@/lib/services/analysis");
-                apiKey = await AnalysisService.getApiKey(novelId, provider) || '';
-
-                if (!apiKey) {
-                    alert("Missing API Key. Please check your Global Settings.");
-                    setIsAnalyzing(false);
-                    return;
+                const novel = await db.novels.get(novelId);
+                if (novel && novel.settings) {
+                    if (novel.settings.activeAiModel) model = novel.settings.activeAiModel;
                 }
-            }
 
-            const response = await fetch('/api/generate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    instruction: instruction,
-                    prompt: selectedText, // Sending selection as prompt
-                    context: "",
-                    provider,
-                    model,
-                    apiKey
-                })
-            });
+                if (provider !== 'ollama') {
+                    const { AnalysisService } = await import("@/lib/services/analysis");
+                    apiKey = await AnalysisService.getApiKey(novelId, provider) || '';
 
-            if (!response.ok) {
-                const errData = await response.json().catch(() => ({}));
-                throw new Error(errData.error || `Generation failed: ${response.status} ${response.statusText}`);
-            }
-            const data = await response.json();
+                    if (!apiKey) throw new Error("Missing API Key.");
+                }
 
-            if (data.text) {
-                // Restore selection range then replace
-                editor.chain().setTextSelection({ from, to }).insertContent(data.text).run();
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        instruction: instruction,
+                        prompt: selectedText,
+                        context: "",
+                        provider,
+                        model,
+                        apiKey
+                    }),
+                    signal
+                });
+
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.error || `Generation failed: ${response.status} ${response.statusText}`);
+                }
+                return await response.json();
+            },
+            (data) => {
+                if (data.text) {
+                    editor.chain().setTextSelection({ from, to }).insertContent(data.text).run();
+                }
+            },
+            (e) => {
+                if (e.name !== 'AbortError') alert("Rewrite failed: " + e.message);
             }
-        } catch (e: any) {
-            console.error(e);
-            alert("Rewrite failed: " + e.message);
-        } finally {
-            setIsAnalyzing(false);
-        }
+        );
     };
 
     const handleAIRewrite = () => {

@@ -298,12 +298,9 @@ export default function ProjectDashboard() {
 
                 <div className="relative z-10 flex flex-col md:flex-row justify-between items-end gap-6">
                     <div>
-                        <h2 className="text-3xl font-semibold tracking-tight text-foreground mb-2">
-                            Welcome Back{user?.email ? `, ${user.email.split('@')[0]}` : ''}
+                        <h2 className="text-3xl font-bold tracking-tight text-foreground/90 font-serif">
+                            Library
                         </h2>
-                        <p className="text-muted-foreground font-light text-base max-w-lg">
-                            Continue building your worlds.
-                        </p>
                     </div>
 
                     <div className="flex items-center gap-3">

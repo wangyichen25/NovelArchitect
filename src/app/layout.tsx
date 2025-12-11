@@ -20,6 +20,8 @@ export const metadata: Metadata = {
 
 import { RealtimeProvider } from "@/components/providers/RealtimeProvider";
 import { ThemeProvider } from "@/components/theme-provider";
+import { TaskQueueProvider } from "@/components/providers/TaskQueueProvider";
+import { TaskQueueWidget } from "@/components/task-queue/TaskQueueWidget";
 
 export default function RootLayout({
   children,
@@ -33,9 +35,12 @@ export default function RootLayout({
         className={`${inter.variable} ${playfair.variable} antialiased min-h-screen bg-background text-foreground font-sans selection:bg-primary/20`}
       >
         <RealtimeProvider>
-          <ThemeProvider>
-            {children}
-          </ThemeProvider>
+          <TaskQueueProvider>
+            <ThemeProvider>
+              {children}
+              <TaskQueueWidget />
+            </ThemeProvider>
+          </TaskQueueProvider>
         </RealtimeProvider>
       </body>
     </html>

@@ -45,7 +45,8 @@ export class AnalysisService {
         novelId: string,
         text: string,
         settings: AnalysisSettings,
-        onProgress?: (msg: string) => void
+        onProgress?: (msg: string) => void,
+        signal?: AbortSignal
     ): Promise<{ new: number; updated: number }> {
 
         if (text.length < 10) throw new Error("Text too short for analysis");
@@ -91,7 +92,8 @@ export class AnalysisService {
                 model: settings.model,
                 existingEntities: existingNamesList,
                 globalContext
-            })
+            }),
+            signal
         });
 
         if (!response.ok) {

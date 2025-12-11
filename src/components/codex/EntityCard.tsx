@@ -11,10 +11,12 @@ import { Trash2, Save, Copy, Loader2, Image as ImageIcon, X, Merge } from "lucid
 import { KeyChain } from "@/lib/ai/keychain";
 import { AnalysisService } from "@/lib/services/analysis";
 import MergeCodexDialog from "./MergeCodexDialog";
+import { useTaskQueue } from "@/components/providers/TaskQueueProvider";
 
 export default function EntityCard({ entry, onSave, onDelete }: { entry: CodexEntry, onSave: () => void, onDelete: () => void }) {
     const [params] = useState<{ id: string }>(window.location.pathname.split("/")[2] ? { id: window.location.pathname.split("/")[2] } : { id: '' });
     const [data, setData] = useState<CodexEntry>(entry);
+    const { addTask } = useTaskQueue();
 
     // Attempt to extract novelId from URL if possible or prop? 
     // EntityCard is used inside [id]/codex/page.tsx so params.id is available via next/navigation?
@@ -97,7 +99,7 @@ export default function EntityCard({ entry, onSave, onDelete }: { entry: CodexEn
         }
     }
 
-    const [isGenerating, setIsGenerating] = useState(false);
+    const [generationCount, setGenerationCount] = useState(0);
     const [style, setStyle] = useState("Cinematic");
     useEffect(() => {
         const savedStyle = localStorage.getItem('novel-architect-last-style');
@@ -115,56 +117,53 @@ export default function EntityCard({ entry, onSave, onDelete }: { entry: CodexEn
             return;
         }
 
-        setIsGenerating(true);
-        try {
-            // Decrypt API Key
-            // Note: Currently defaulting to OpenRouter key for image gen as per legacy logic, 
-            // but ideally this should depend on selectedModel's provider.
-            // AnalysisService.getApiKey checks Profiles > LocalStorage.
-            const apiKey = await AnalysisService.getApiKey(entry.novelId || 'global', 'openrouter');
+        await addTask(
+            'image',
+            `Generating Image: ${data.name}`,
+            async (signal) => {
+                setGenerationCount(prev => prev + 1);
+                // Decrypt API Key
+                const apiKey = await AnalysisService.getApiKey(entry.novelId || 'global', 'openrouter');
 
-            if (!apiKey) {
-                alert("Please configure OpenRouter API Key in Settings first (Images currently require OpenRouter).");
-                setIsGenerating(false);
-                return;
+                if (!apiKey) {
+                    throw new Error("Please configure OpenRouter API Key in Settings first (Images currently require OpenRouter).");
+                }
+
+                const response = await fetch('/api/generate-image', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-novel-architect-key': apiKey
+                    },
+                    body: JSON.stringify({ prompt: data.visualSummary, style, model: selectedModel }),
+                    signal
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw err; // Will be caught by task queue
+                }
+
+                return await response.json();
+            },
+            async (res) => {
+                const currentGallery = data.gallery && data.gallery.length > 0 ? data.gallery : (data.image ? [data.image] : []);
+                const newGallery = [...currentGallery, res.url];
+                setData(prev => ({ ...prev, image: res.url, gallery: newGallery })); // Use functional update for safety
+
+                // Auto-save
+                await db.codex.put({ ...data, image: res.url, gallery: newGallery });
+                onSave(); // Refresh parent
+                setGenerationCount(prev => prev - 1);
+            },
+            (error) => {
+                setGenerationCount(prev => prev - 1);
+                if (error.name !== 'AbortError') {
+                    const errorMsg = error.message || JSON.stringify(error, null, 2);
+                    alert(`Error: ${errorMsg}`);
+                }
             }
-
-            const response = await fetch('/api/generate-image', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-novel-architect-key': apiKey
-                },
-                body: JSON.stringify({ prompt: data.visualSummary, style, model: selectedModel })
-            });
-
-            if (!response.ok) {
-                const err = await response.json();
-                // Pass the whole error object to the catch block
-                throw err;
-            }
-
-            const res = await response.json();
-            const currentGallery = data.gallery && data.gallery.length > 0 ? data.gallery : (data.image ? [data.image] : []);
-            const newGallery = [...currentGallery, res.url];
-            setData({ ...data, image: res.url, gallery: newGallery });
-
-            // Auto-save
-            await db.codex.put({ ...data, image: res.url, gallery: newGallery });
-            onSave(); // Refresh parent
-
-        } catch (error: any) {
-            console.error(error);
-            // Alert nicely formatted error if it's an object/json
-            if (error.cause || (typeof error === 'object' && error !== null)) {
-                const errorMsg = error.message || JSON.stringify(error, null, 2);
-                alert(`Error Details: ${errorMsg}`);
-            } else {
-                alert(`Error: ${error}`);
-            }
-        } finally {
-            setIsGenerating(false);
-        }
+        );
     };
 
     return (
@@ -266,64 +265,73 @@ export default function EntityCard({ entry, onSave, onDelete }: { entry: CodexEn
                                         const prompt = (e.target as HTMLInputElement).value;
                                         if (!prompt) return;
 
-                                        setIsGenerating(true);
-                                        try {
-                                            // 1. Compress Image if needed
-                                            const resizeImage = (base64Str: string, maxWidth = 1024): Promise<string> => {
-                                                return new Promise((resolve) => {
-                                                    const img = new Image();
-                                                    img.src = base64Str;
-                                                    img.onload = () => {
-                                                        const canvas = document.createElement('canvas');
-                                                        let width = img.width;
-                                                        let height = img.height;
-                                                        if (width > maxWidth) {
-                                                            height = Math.round((height * maxWidth) / width);
-                                                            width = maxWidth;
-                                                        }
-                                                        canvas.width = width;
-                                                        canvas.height = height;
-                                                        const ctx = canvas.getContext('2d');
-                                                        ctx?.drawImage(img, 0, 0, width, height);
-                                                        resolve(canvas.toDataURL('image/jpeg', 0.8));
-                                                    };
+                                        // queue task for modification
+                                        await addTask(
+                                            'image',
+                                            `Modifying Image: ${data.name}`,
+                                            async (signal) => {
+                                                setGenerationCount(c => c + 1);
+                                                // 1. Compress Image if needed
+                                                const resizeImage = (base64Str: string, maxWidth = 1024): Promise<string> => {
+                                                    return new Promise((resolve) => {
+                                                        const img = new Image();
+                                                        img.src = base64Str;
+                                                        img.onload = () => {
+                                                            const canvas = document.createElement('canvas');
+                                                            let width = img.width;
+                                                            let height = img.height;
+                                                            if (width > maxWidth) {
+                                                                height = Math.round((height * maxWidth) / width);
+                                                                width = maxWidth;
+                                                            }
+                                                            canvas.width = width;
+                                                            canvas.height = height;
+                                                            const ctx = canvas.getContext('2d');
+                                                            ctx?.drawImage(img, 0, 0, width, height);
+                                                            resolve(canvas.toDataURL('image/jpeg', 0.8));
+                                                        };
+                                                    });
+                                                };
+
+                                                let payloadImage = data.image; // current image
+                                                if (data.image && data.image.length > 500000) {
+                                                    console.log("Resizing image before upload...");
+                                                    payloadImage = await resizeImage(data.image);
+                                                }
+
+                                                // 2. Call API
+                                                const encrypted = localStorage.getItem('novel-architect-key-openrouter');
+                                                const pin = localStorage.getItem('novel-architect-pin-hash');
+                                                if (!encrypted || !pin) throw new Error("Missing API Key");
+                                                const apiKey = await KeyChain.decrypt(encrypted, pin);
+
+                                                const res = await fetch('/api/generate-image', {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json', 'x-novel-architect-key': apiKey || '' },
+                                                    body: JSON.stringify({ prompt, image: payloadImage, style: "None", model: selectedModel }),
+                                                    signal
                                                 });
-                                            };
-
-                                            let payloadImage = data.image;
-                                            if (data.image && data.image.length > 500000) {
-                                                console.log("Resizing image before upload...");
-                                                payloadImage = await resizeImage(data.image);
+                                                return await res.json();
+                                            },
+                                            async (json) => {
+                                                if (json.url) {
+                                                    const currentGallery = data.gallery && data.gallery.length > 0 ? data.gallery : (data.image ? [data.image] : []);
+                                                    const newGallery = [...currentGallery, json.url];
+                                                    setData(prev => ({ ...prev, image: json.url, gallery: newGallery }));
+                                                    await db.codex.put({ ...data, image: json.url, gallery: newGallery });
+                                                    onSave();
+                                                    (e.target as HTMLInputElement).value = "";
+                                                } else {
+                                                    alert("Failed to modify: " + (json.error || "Unknown"));
+                                                }
+                                                setGenerationCount(c => c - 1);
+                                            },
+                                            (err) => {
+                                                console.error(err);
+                                                if (err.name !== 'AbortError') alert("Error modifying image: " + err);
+                                                setGenerationCount(c => c - 1);
                                             }
-
-                                            // 2. Call API
-                                            const encrypted = localStorage.getItem('novel-architect-key-openrouter');
-                                            const pin = localStorage.getItem('novel-architect-pin-hash');
-                                            if (!encrypted || !pin) throw new Error("Missing API Key");
-                                            const apiKey = await KeyChain.decrypt(encrypted, pin);
-
-                                            const res = await fetch('/api/generate-image', {
-                                                method: 'POST',
-                                                headers: { 'Content-Type': 'application/json', 'x-novel-architect-key': apiKey || '' },
-                                                body: JSON.stringify({ prompt, image: payloadImage, style: "None", model: selectedModel })
-                                            });
-                                            const json = await res.json();
-                                            if (json.url) {
-                                                const currentGallery = data.gallery && data.gallery.length > 0 ? data.gallery : (data.image ? [data.image] : []);
-                                                const newGallery = [...currentGallery, json.url];
-                                                setData({ ...data, image: json.url, gallery: newGallery });
-                                                await db.codex.put({ ...data, image: json.url, gallery: newGallery });
-                                                onSave();
-                                                (e.target as HTMLInputElement).value = "";
-                                            } else {
-                                                alert("Failed to modify: " + (json.error || "Unknown"));
-                                            }
-                                        } catch (err) {
-                                            console.error(err);
-                                            alert("Error modifying image: " + err);
-                                        } finally {
-                                            setIsGenerating(false);
-                                        }
+                                        );
                                     }
                                 }}
                             />
@@ -459,10 +467,10 @@ export default function EntityCard({ entry, onSave, onDelete }: { entry: CodexEn
                             size="sm"
                             className="h-6 text-xs"
                             onClick={handleGenerateImage}
-                            disabled={isGenerating || !data.visualSummary}
+                            disabled={!data.visualSummary}
                         >
-                            {isGenerating ? <Loader2 className="mr-2 h-3 w-3 animate-spin" /> : <ImageIcon className="mr-2 h-3 w-3" />}
-                            Generate
+                            {generationCount > 0 ? <Loader2 className="mr-2 h-3 w-3 animate-spin" /> : <ImageIcon className="mr-2 h-3 w-3" />}
+                            Generate {generationCount > 0 ? `(${generationCount})` : ''}
                         </Button>
                         <div className="relative">
                             <input
