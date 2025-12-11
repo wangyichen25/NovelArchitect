@@ -1,7 +1,7 @@
 
 "use client";
 
-import NovelEditor from "@/components/editor/NovelEditor";
+import NovelEditor, { NovelEditorHandle } from "@/components/editor/NovelEditor";
 import { useParams } from "next/navigation";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { db } from "@/lib/db";
@@ -10,7 +10,7 @@ import { useProjectStore } from "@/hooks/useProject";
 import { Scene, Act, Chapter } from "@/lib/db/schema";
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from "@/components/ui/button";
-import { Plus, Save, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Save, ChevronLeft, ChevronRight, Sparkles, Loader2 } from "lucide-react";
 
 export default function WritePage() {
     const params = useParams();
@@ -18,6 +18,8 @@ export default function WritePage() {
     const { activeSceneId, setActiveScene } = useProjectStore();
     const [status, setStatus] = useState<"saved" | "saving" | "unsaved">("saved");
     const saveTimeoutRef = useRef<NodeJS.Timeout>(null);
+    const editorRef = useRef<NovelEditorHandle>(null);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
 
     // Fetch all scenes for this novel to show selector
     const scenes = useLiveQuery(
@@ -162,6 +164,17 @@ export default function WritePage() {
         }, 1000);
     }, [activeSceneId]);
 
+    const handleAnalyze = async () => {
+        if (editorRef.current) {
+            setIsAnalyzing(true);
+            try {
+                await editorRef.current.handleAnalyze();
+            } finally {
+                setIsAnalyzing(false);
+            }
+        }
+    };
+
     // Calculate previous/next scenes
     const activeSceneIndex = scenes?.findIndex(s => s.id === activeSceneId) ?? -1;
     const prevSceneId = activeSceneIndex > 0 ? scenes?.[activeSceneIndex - 1]?.id : null;
@@ -170,7 +183,7 @@ export default function WritePage() {
     return (
         <div className="flex flex-col h-full bg-background relative">
             {/* Simple Scene Toolbar */}
-            <div className="p-2 flex items-center justify-between transition-opacity hover:opacity-100 opacity-50 focus-within:opacity-100">
+            <div className="p-2 flex items-center justify-between transition-opacity hover:opacity-100 opacity-50 focus-within:opacity-100 border-b">
                 <div className="flex items-center gap-2">
                     <Button
                         size="sm"
@@ -208,10 +221,24 @@ export default function WritePage() {
                         <Plus className="h-4 w-4" />
                     </Button>
                 </div>
-                <div className="text-xs text-muted-foreground flex items-center gap-2">
-                    {status === 'saving' && <span className="animate-pulse">Saving...</span>}
-                    {status === 'saved' && <span>All changes saved</span>}
-                    {status === 'unsaved' && <span className="text-red-500">Unsaved changes</span>}
+
+                <div className="flex items-center gap-2">
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={handleAnalyze}
+                        disabled={isAnalyzing}
+                        className="h-8 px-2 text-xs"
+                    >
+                        {isAnalyzing ? <Loader2 className="animate-spin h-3 w-3 mr-1" /> : <Sparkles className="h-3 w-3 mr-1 text-purple-500" />}
+                        <span className="hidden sm:inline">{isAnalyzing ? "Analyzing..." : "Auto-Extract"}</span>
+                    </Button>
+                    <div className="w-[1px] h-4 bg-border mx-1 hidden sm:block" />
+                    <div className="text-xs text-muted-foreground hidden sm:flex items-center gap-2">
+                        {status === 'saving' && <span className="animate-pulse">Saving...</span>}
+                        {status === 'saved' && <span>Saved</span>}
+                        {status === 'unsaved' && <span className="text-red-500">Unsaved</span>}
+                    </div>
                 </div>
             </div>
 
@@ -219,6 +246,7 @@ export default function WritePage() {
                 {/* Key prop ensures editor remounts when scene changes */}
                 {activeScene && (
                     <NovelEditor
+                        ref={editorRef}
                         key={activeScene.id}
                         initialContent={activeScene.content}
                         onUpdate={handleUpdate}

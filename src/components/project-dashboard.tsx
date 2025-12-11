@@ -303,11 +303,12 @@ export default function ProjectDashboard() {
                                 {user.email?.replace('@novelarchitect.com', '')}
                             </span>
                             <Button variant="outline" size="sm" onClick={handleCloudSync} disabled={syncing}>
-                                <RefreshCw className={`mr-2 h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
-                                Sync Cloud
+                                <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''} sm:mr-2`} />
+                                <span className="hidden sm:inline">Sync Cloud</span>
                             </Button>
                             <Button variant="ghost" size="sm" onClick={handleLogout}>
-                                <LogOut className="mr-2 h-4 w-4" /> Logout
+                                <LogOut className="h-4 w-4 sm:mr-2" />
+                                <span className="hidden sm:inline">Logout</span>
                             </Button>
                         </>
                     ) : (

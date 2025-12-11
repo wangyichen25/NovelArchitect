@@ -7,7 +7,8 @@ import { CodexEntry } from "@/lib/db/schema";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, User, MapPin, Box, Book, ScanSearch } from "lucide-react";
+import { Search, Plus, User, MapPin, Box, Book, ScanSearch, Trash2, CheckSquare, X, LayoutGrid } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox-input";
 import { useParams } from "next/navigation";
 import BatchExtractDialog from "./BatchExtractDialog";
 
@@ -16,6 +17,10 @@ export default function CodexSidebar({ onSelect }: { onSelect: (entry: CodexEntr
     const novelId = params.id as string;
     const [generatingProgress, setGeneratingProgress] = useState<string | null>(null);
     const [showBatchDialog, setShowBatchDialog] = useState(false);
+
+    // Selection Mode State
+    const [isSelectionMode, setIsSelectionMode] = useState(false);
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
     const handleGenerateAll = async () => {
         if (!entries) return;
@@ -116,26 +121,81 @@ export default function CodexSidebar({ onSelect }: { onSelect: (entry: CodexEntr
         }
     }
 
+    const toggleSelection = (id: string, checked: boolean) => {
+        const newSet = new Set(selectedIds);
+        if (checked) newSet.add(id);
+        else newSet.delete(id);
+        setSelectedIds(newSet);
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedIds.size === 0) return;
+        if (!confirm(`Are you sure you want to delete ${selectedIds.size} entries? This cannot be undone.`)) return;
+
+        try {
+            await db.codex.bulkDelete(Array.from(selectedIds));
+            setSelectedIds(new Set());
+            setIsSelectionMode(false);
+        } catch (e) {
+            alert("Failed to delete entries.");
+            console.error(e);
+        }
+    };
+
+    const toggleSelectAll = () => {
+        if (!entries) return;
+        if (selectedIds.size === entries.length) {
+            setSelectedIds(new Set());
+        } else {
+            setSelectedIds(new Set(entries.map(e => e.id)));
+        }
+    };
+
     return (
-        <div className="w-64 border-r bg-card h-full flex flex-col">
+        <div className="h-full flex flex-col bg-card w-full">
             <div className="p-4 border-b space-y-4">
                 <h2 className="font-serif font-bold text-lg">Codex</h2>
-                <div className="relative">
-                    <Button variant="ghost" size="icon" onClick={() => setShowBatchDialog(true)} title="Batch Auto-Extract">
-                        <ScanSearch className="h-4 w-4" />
-                    </Button>
-                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                        placeholder="Search..."
-                        className="pl-8"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                    />
+                <div className="flex gap-1">
+                    {isSelectionMode ? (
+                        <>
+                            <Button variant="ghost" size="icon" onClick={() => { setIsSelectionMode(false); setSelectedIds(new Set()); }} title="Cancel Selection">
+                                <X className="h-4 w-4" />
+                            </Button>
+                            <Button variant="destructive" size="icon" onClick={handleBulkDelete} disabled={selectedIds.size === 0} title="Delete Selected">
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={toggleSelectAll} title="Select All">
+                                <CheckSquare className="h-4 w-4" />
+                            </Button>
+                        </>
+                    ) : (
+                        <>
+                            <Button variant="ghost" size="icon" onClick={() => setIsSelectionMode(true)} title="Select Multiple">
+                                <CheckSquare className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => setShowBatchDialog(true)} title="Batch Auto-Extract">
+                                <ScanSearch className="h-4 w-4" />
+                            </Button>
+                        </>
+                    )}
                 </div>
+                {!isSelectionMode && (
+                    <div className="relative">
+                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Search..."
+                            className="pl-8"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                        />
+                    </div>
+                )}
                 <div className="flex gap-2 justify-between">
-                    <Button variant={filter === 'all' ? 'default' : 'ghost'} size="icon" onClick={() => setFilter('all')} title="All"><Box className="h-4 w-4" /></Button>
+                    <Button variant={filter === 'all' ? 'default' : 'ghost'} size="icon" onClick={() => setFilter('all')} title="All"><LayoutGrid className="h-4 w-4" /></Button>
                     <Button variant={filter === 'character' ? 'default' : 'ghost'} size="icon" onClick={() => setFilter('character')} title="Characters"><User className="h-4 w-4" /></Button>
                     <Button variant={filter === 'location' ? 'default' : 'ghost'} size="icon" onClick={() => setFilter('location')} title="Locations"><MapPin className="h-4 w-4" /></Button>
+                    <Button variant={filter === 'object' ? 'default' : 'ghost'} size="icon" onClick={() => setFilter('object')} title="Objects"><Box className="h-4 w-4" /></Button>
+                    <Button variant={filter === 'lore' ? 'default' : 'ghost'} size="icon" onClick={() => setFilter('lore')} title="Lore"><Book className="h-4 w-4" /></Button>
                 </div>
             </div>
 
@@ -145,9 +205,23 @@ export default function CodexSidebar({ onSelect }: { onSelect: (entry: CodexEntr
                 {entries?.map(entry => (
                     <div
                         key={entry.id}
-                        className="flex items-center gap-2 p-2 hover:bg-accent rounded-md cursor-pointer text-sm"
-                        onClick={() => onSelect(entry)}
+                        className={`flex items-center gap-2 p-2 hover:bg-accent rounded-md cursor-pointer text-sm ${selectedIds.has(entry.id) ? 'bg-accent' : ''}`}
+                        onClick={() => {
+                            if (isSelectionMode) {
+                                toggleSelection(entry.id, !selectedIds.has(entry.id));
+                            } else {
+                                onSelect(entry);
+                            }
+                        }}
                     >
+                        {isSelectionMode && (
+                            <Checkbox
+                                id={`select-${entry.id}`}
+                                checked={selectedIds.has(entry.id)}
+                                onCheckedChange={(c) => toggleSelection(entry.id, c === true)}
+                                onClick={(e) => e.stopPropagation()} // Prevent triggering the row click twice if clicking checkbox
+                            />
+                        )}
                         {getIcon(entry.category)}
                         <span className="font-medium truncate">{entry.name}</span>
                     </div>

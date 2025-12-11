@@ -168,7 +168,7 @@ export default function EntityCard({ entry, onSave, onDelete }: { entry: CodexEn
     };
 
     return (
-        <div className="p-6 pb-24 max-w-2xl mx-auto space-y-6">
+        <div className="p-4 md:p-6 pb-24 max-w-2xl mx-auto space-y-6">
             <div className="flex items-center justify-between">
                 <Input
                     value={data.name}
@@ -206,7 +206,7 @@ export default function EntityCard({ entry, onSave, onDelete }: { entry: CodexEn
                 }}
             />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label className="text-sm font-medium text-muted-foreground">Category</label>
                     <select

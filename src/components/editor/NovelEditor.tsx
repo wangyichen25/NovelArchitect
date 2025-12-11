@@ -5,13 +5,12 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Highlight from '@tiptap/extension-highlight';
 import BubbleMenuExtension from '@tiptap/extension-bubble-menu';
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { useParams } from 'next/navigation';
 import { db } from '@/lib/db';
 import { AhoCorasick } from '@/lib/ai/scanner';
 import { Button } from '@/components/ui/button';
-import { ScanSearch, Sparkles, Loader2, PenTool, RefreshCw, BookPlus } from 'lucide-react';
-import { KeyChain } from '@/lib/ai/keychain';
+import { ScanSearch, Sparkles, Loader2, RefreshCw, BookPlus } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { EntityMark } from '@/components/editor/extensions/EntityMark';
 import { SlashCommand, getSuggestionItems, renderItems } from '@/components/editor/extensions/SlashCommand';
@@ -24,6 +23,9 @@ interface NovelEditorProps {
     sceneId: string;
 }
 
+export interface NovelEditorHandle {
+    handleAnalyze: () => Promise<void>;
+}
 
 const getColorForCategory = (cat: string) => {
     switch (cat) {
@@ -36,7 +38,7 @@ const getColorForCategory = (cat: string) => {
     }
 };
 
-export default function NovelEditor({ initialContent, onUpdate, sceneId }: NovelEditorProps) {
+const NovelEditor = forwardRef<NovelEditorHandle, NovelEditorProps>(({ initialContent, onUpdate, sceneId }, ref) => {
     const params = useParams();
     const novelId = params.id as string;
     const [isScanning, setIsScanning] = useState(false);
@@ -86,7 +88,7 @@ export default function NovelEditor({ initialContent, onUpdate, sceneId }: Novel
         content: initialContent || '<p>Start writing...</p>',
         editorProps: {
             attributes: {
-                class: 'prose prose-lg dark:prose-invert focus:outline-none max-w-none min-h-[500px] px-8 py-4 text-foreground marker:text-foreground',
+                class: 'prose prose-lg dark:prose-invert focus:outline-none max-w-none min-h-[500px] px-4 md:px-8 py-4 text-foreground marker:text-foreground',
             },
             handleDOMEvents: {
                 mouseover: (view, event) => {
@@ -223,6 +225,9 @@ export default function NovelEditor({ initialContent, onUpdate, sceneId }: Novel
             } else {
                 alert("Analysis complete. No new information found.");
             }
+
+            // Mark as analyzed (Update Tracking)
+            await db.scenes.update(sceneId, { "metadata.lastAnalyzed": Date.now() });
 
         } catch (e: any) {
             console.error(e);
@@ -659,25 +664,16 @@ export default function NovelEditor({ initialContent, onUpdate, sceneId }: Novel
     // Actually handleAnalyze etc are closures, they depend on `editor` etc. so they DO change.
     // The ref needs to be updated.
 
+    useImperativeHandle(ref, () => ({
+        handleAnalyze
+    }));
+
     if (!editor) {
         return null;
     }
 
     return (
         <div className="w-full max-w-4xl mx-auto min-h-screen flex flex-col relative">
-            <div className="sticky top-0 z-50 p-2 border-b flex justify-between items-center bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-                <span className="text-xs text-muted-foreground ml-2">Editor</span>
-                <div className="flex gap-2">
-                    <Button size="sm" variant="secondary" onClick={handleAnalyze} disabled={isAnalyzing || isScanning}>
-                        {isAnalyzing ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <Sparkles className="h-4 w-4 mr-2 text-purple-500" />}
-                        {isAnalyzing ? "Analyzing..." : "Auto-Extract"}
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={handleScan} disabled={isScanning || isAnalyzing}>
-                        {isScanning ? <ScanSearch className="animate-spin h-4 w-4 mr-2" /> : <ScanSearch className="h-4 w-4 mr-2" />}
-                        Scan Codex
-                    </Button>
-                </div>
-            </div>
             <EditorContent editor={editor} className="flex-1" />
 
             {/* Custom Bubble Menu */}
@@ -739,4 +735,8 @@ export default function NovelEditor({ initialContent, onUpdate, sceneId }: Novel
             />
         </div>
     );
-}
+});
+
+NovelEditor.displayName = "NovelEditor";
+
+export default NovelEditor;

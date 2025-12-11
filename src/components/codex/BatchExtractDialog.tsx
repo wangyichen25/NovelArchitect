@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox-input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Play, CheckCircle2 } from "lucide-react";
+import { Loader2, Play, CheckCircle2, RotateCcw } from "lucide-react";
 import { db } from "@/lib/db";
 import { Act, Scene } from "@/lib/db/schema";
 import { AnalysisService } from "@/lib/services/analysis";
@@ -255,6 +255,36 @@ export default function BatchExtractDialog({ open, onOpenChange }: { open: boole
         }
     };
 
+    const handleResetStatus = async () => {
+        if (selectedIds.size === 0) return;
+        if (!confirm("Reset extraction status for selected scenes? They will be marked as not analyzed.")) return;
+
+        setLoading(true);
+        try {
+            const sceneIds: string[] = [];
+            tree.forEach(act => {
+                if (act.children) {
+                    act.children.forEach(sceneNode => {
+                        if (selectedIds.has(sceneNode.id)) {
+                            sceneIds.push(sceneNode.id);
+                        }
+                    });
+                }
+            });
+
+            await db.scenes.where('id').anyOf(sceneIds).modify(s => {
+                if (s.metadata) s.metadata.lastAnalyzed = undefined;
+            });
+
+            await loadStructure();
+        } catch (e) {
+            console.error(e);
+            alert("Failed to reset status");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <Dialog open={open} onOpenChange={(v) => {
             // If processing, do not allow closing via overlay click unless we stop?
@@ -335,6 +365,9 @@ export default function BatchExtractDialog({ open, onOpenChange }: { open: boole
                                 {selectedIds.size > 0 ? `${selectedIds.size} items selected` : ''}
                             </div>
                             <div className="flex gap-2">
+                                <Button variant="outline" onClick={handleResetStatus} disabled={selectedIds.size === 0} title="Reset Status">
+                                    <RotateCcw className="h-4 w-4" />
+                                </Button>
                                 <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
                                 <Button onClick={runAnalysis} disabled={selectedIds.size === 0}>
                                     <Play className="mr-2 h-4 w-4" />
