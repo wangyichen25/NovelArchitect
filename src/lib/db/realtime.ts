@@ -69,6 +69,11 @@ export const subscribeToRealtime = (userId: string) => {
         return () => subscription.unsubscribe();
     }
 
+    if (!userId) {
+        console.warn('Realtime subscription skipped: No user ID provided.');
+        return () => { };
+    }
+
     console.log('Starting Realtime Subscription for user:', userId);
 
     const tables = ['novels', 'acts', 'chapters', 'scenes', 'codex', 'prompt_presets'];
@@ -79,7 +84,7 @@ export const subscribeToRealtime = (userId: string) => {
     tables.forEach(table => {
         channel.on(
             'postgres_changes',
-            { event: '*', schema: 'public', table: table, filter: `user_id=eq.${userId}` },
+            { event: '*', schema: 'public', table: table },
             async (payload) => {
                 console.log(`Realtime update received for ${table}:`, payload.eventType);
 
@@ -108,16 +113,15 @@ export const subscribeToRealtime = (userId: string) => {
     subscription = channel.subscribe((status) => {
         if (status === 'SUBSCRIBED') {
             console.log('Realtime connected!');
+        } else if (status === 'CHANNEL_ERROR') {
+            const err = new Error('Realtime channel error. Check connection and permissions.');
+            console.error(err);
+            // Attempt to recover or notify?
+            // For now, simple logging is safer than infinite retry loops
+        } else if (status === 'TIMED_OUT') {
+            console.warn('Realtime connection timed out. Retrying...');
         } else {
             console.log('Realtime status:', status);
-        }
-
-        if (status === 'CHANNEL_ERROR') {
-            console.error('Realtime channel error. Check connection and permissions.');
-        }
-
-        if (status === 'TIMED_OUT') {
-            console.warn('Realtime connection timed out. Retrying...');
         }
     });
 

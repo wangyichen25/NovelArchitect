@@ -14,7 +14,7 @@ function addToQueue(operation: () => Promise<void>) {
 const debounceMap = new Map<string, { timer: NodeJS.Timeout, resolve: () => void }>();
 
 
-function debouncedSync(key: string, operation: () => Promise<void>, delay: number = 2000): Promise<void> {
+function debouncedSync(key: string, operation: () => Promise<void>, delay: number = 1000): Promise<void> {
     const existing = debounceMap.get(key);
     if (existing) {
         clearTimeout(existing.timer);

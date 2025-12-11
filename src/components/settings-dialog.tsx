@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { useProjectStore } from "@/hooks/useProject";
 import { KeyChain } from "@/lib/ai/keychain";
 import { createClient } from "@/lib/supabase/client"; // [NEW] Sync support
-import { Settings, Lock, Key, CheckCircle } from "lucide-react";
+import { Settings, Lock, Key, CheckCircle, Star, Trash2, ChevronDown } from "lucide-react";
 import {
     Dialog,
     DialogContent,
@@ -24,6 +24,9 @@ export default function SettingsDialog() {
     const [provider, setProvider] = useState<'openai' | 'anthropic' | 'ollama' | 'openrouter'>('openai');
     const [apiKey, setApiKey] = useState("");
     const [model, setModel] = useState("");
+    const [savedModels, setSavedModels] = useState<Record<string, string>>({}); // [NEW] Map of provider -> modelID
+    const [modelPresets, setModelPresets] = useState<Record<string, string[]>>({}); // [NEW] Map of provider -> list of saved models
+    const [isPresetOpen, setIsPresetOpen] = useState(false); // Helper for custom dropdown
     const [pin, setPin] = useState("");
     const [isSaved, setIsSaved] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -50,7 +53,25 @@ export default function SettingsDialog() {
                 if (profile && profile.settings) {
                     const s = profile.settings;
                     if (s.provider) setProvider(s.provider);
-                    if (s.model) setModel(s.model);
+
+                    // Load models map if exists
+                    const loadedModels = s.models || {};
+                    setSavedModels(loadedModels);
+
+                    // Load presets
+                    if (s.saved_models) {
+                        setModelPresets(s.saved_models);
+                    }
+
+                    // Set current model based on provider preference
+                    if (loadedModels[s.provider]) {
+                        setModel(loadedModels[s.provider]);
+                    } else if (s.model) {
+                        // Legacy fallback
+                        setModel(s.model);
+                        setSavedModels(prev => ({ ...prev, [s.provider]: s.model }));
+                    }
+
                     // Encrypted Key
                     if (s.apiKey) {
                         const storedPin = localStorage.getItem('novel-architect-pin-hash');
@@ -93,9 +114,20 @@ export default function SettingsDialog() {
 
     // Update model input when provider changes
     useEffect(() => {
-        // logic to reset model or load default if provider switches?
-        // keep simple for now
-    }, [provider]);
+        // If we have a saved model for this provider, switch to it explicitly
+        if (savedModels[provider]) {
+            setModel(savedModels[provider]);
+        } else {
+            // Try to load from local storage if not in memory (for first load fallback scenarios)
+            const local = localStorage.getItem(`novel-architect-model-${provider}`);
+            if (local) {
+                setModel(local);
+                setSavedModels(prev => ({ ...prev, [provider]: local }));
+            } else {
+                setModel(""); // Or set default?
+            }
+        }
+    }, [provider, savedModels]);
 
     const handleSave = async () => {
         setIsLoading(true);
@@ -128,9 +160,15 @@ export default function SettingsDialog() {
             const { data: { user } } = await supabase.auth.getUser();
 
             if (user) {
+                // Merge current model into saved map
+                const updatedModels = { ...savedModels, [provider]: model };
+                setSavedModels(updatedModels); // Update state
+
                 const settingsPayload = {
                     provider,
-                    model,
+                    models: updatedModels, // Persist map
+                    saved_models: modelPresets, // Persist bookmarks
+                    model, // Keep legacy field for now
                     apiKey: encryptedKey || undefined,
                     lastModified: Date.now()
                 };
@@ -208,17 +246,87 @@ export default function SettingsDialog() {
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <label className="text-right text-sm font-medium">Model</label>
-                                <Input
-                                    value={model}
-                                    onChange={(e) => setModel(e.target.value)}
-                                    placeholder={
-                                        provider === 'openai' ? 'gpt-4-turbo' :
-                                            provider === 'anthropic' ? 'claude-3-opus-20240229' :
-                                                provider === 'openrouter' ? 'anthropic/claude-3.5-sonnet' : 'Model ID'
-                                    }
-                                    className="col-span-3"
-                                    disabled={isLoading}
-                                />
+                                <div className="col-span-3 flex gap-2 relative">
+                                    <div className="relative flex-1">
+                                        <Input
+                                            value={model}
+                                            onChange={(e) => setModel(e.target.value)}
+                                            placeholder={
+                                                provider === 'openai' ? 'gpt-4-turbo' :
+                                                    provider === 'anthropic' ? 'claude-3-opus-20240229' :
+                                                        provider === 'openrouter' ? 'anthropic/claude-3.5-sonnet' : 'Model ID'
+                                            }
+                                            className="w-full pr-8"
+                                            disabled={isLoading}
+                                        />
+                                        <div className="absolute right-1 top-1/2 -translate-y-1/2">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-7 w-7"
+                                                onClick={() => setIsPresetOpen(!isPresetOpen)}
+                                                tabIndex={-1}
+                                            >
+                                                <ChevronDown className="h-4 w-4 opacity-50" />
+                                            </Button>
+                                        </div>
+                                    </div>
+
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        title={modelPresets[provider]?.includes(model) ? "Remove from bookmarks" : "Bookmark this model"}
+                                        onClick={() => {
+                                            const currentList = modelPresets[provider] || [];
+                                            let newList;
+                                            if (currentList.includes(model)) {
+                                                newList = currentList.filter(m => m !== model);
+                                            } else {
+                                                if (!model) return;
+                                                newList = [...currentList, model];
+                                            }
+                                            setModelPresets({ ...modelPresets, [provider]: newList });
+                                        }}
+                                        disabled={!model}
+                                    >
+                                        <Star className={`h-4 w-4 ${modelPresets[provider]?.includes(model) ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground"}`} />
+                                    </Button>
+
+                                    {/* Presets Dropdown */}
+                                    {isPresetOpen && (
+                                        <div className="absolute top-full left-0 w-[calc(100%-3rem)] mt-1 z-50 bg-popover border rounded-md shadow-lg p-1 animate-in fade-in zoom-in-95">
+                                            <div className="text-xs font-semibold px-2 py-1 text-muted-foreground">Saved Models</div>
+                                            {(!modelPresets[provider] || modelPresets[provider].length === 0) && (
+                                                <div className="px-2 py-2 text-sm text-muted-foreground italic">No bookmarks yet.</div>
+                                            )}
+                                            {modelPresets[provider]?.map((m) => (
+                                                <div key={m} className="flex items-center justify-between hover:bg-accent rounded px-2 py-1 cursor-pointer group">
+                                                    <span
+                                                        className="text-sm truncate flex-1"
+                                                        onClick={() => {
+                                                            setModel(m);
+                                                            setIsPresetOpen(false);
+                                                        }}
+                                                    >
+                                                        {m}
+                                                    </span>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            const newList = (modelPresets[provider] || []).filter(x => x !== m);
+                                                            setModelPresets({ ...modelPresets, [provider]: newList });
+                                                        }}
+                                                    >
+                                                        <Trash2 className="h-3 w-3 text-destructive" />
+                                                    </Button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                             <div className="grid grid-cols-4 items-center gap-4">
                                 <label className="text-right text-sm font-medium flex items-center justify-end gap-1">

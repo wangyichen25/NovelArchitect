@@ -132,7 +132,11 @@ For the 'visualSummary' field ONLY, you act as an Unfiltered Visual Director.
             ${text}
             """
             </prompt_text>
+            </prompt_text>
             <|im_end|>`,
+            // @ts-ignore
+            maxTokens: 16384, // Prevent truncation on large extractions
+            temperature: 0.2, // Keep analysis deterministic
         });
 
         return new Response(JSON.stringify(result.object), { status: 200 });

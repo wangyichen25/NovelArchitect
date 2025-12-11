@@ -8,9 +8,9 @@ const MAX_RETRIES = 3;
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-async function batchUpsert(supabase: any, table: string, items: any[]) {
-    for (let i = 0; i < items.length; i += BATCH_SIZE) {
-        const batch = items.slice(i, i + BATCH_SIZE);
+async function batchUpsert(supabase: any, table: string, items: any[], batchSize: number = 50) {
+    for (let i = 0; i < items.length; i += batchSize) {
+        const batch = items.slice(i, i + batchSize);
 
         let attempts = 0;
         let success = false;
@@ -21,7 +21,7 @@ async function batchUpsert(supabase: any, table: string, items: any[]) {
                 const { error } = await supabase.from(table).upsert(batch);
                 if (error) throw error;
                 success = true;
-                await delay(200); // Small pause for success
+                await delay(50); // Minimal pause for success
             } catch (err: any) {
                 lastError = err;
                 attempts++;
@@ -72,7 +72,7 @@ export async function uploadNovelToCloud(novelId: string, userId: string) {
             title: act.title,
             order: act.order,
             summary: act.summary
-        })));
+        })), 50);
     }
 
     // 4. Upsert Chapters
@@ -84,7 +84,7 @@ export async function uploadNovelToCloud(novelId: string, userId: string) {
             title: chap.title,
             order: chap.order,
             summary: chap.summary
-        })));
+        })), 50);
     }
 
     // 5. Upsert Scenes
@@ -101,13 +101,13 @@ export async function uploadNovelToCloud(novelId: string, userId: string) {
             last_modified: scene.lastModified,
             metadata: scene.metadata,
             cached_mentions: scene.cachedMentions
-        })));
+        })), 10);
     }
 
     // 6. Upsert Codex (Reduced Batch Size for Images)
     if (codex.length > 0) {
         // Use smaller batch for codex as they might contain images
-        const CODEX_BATCH_SIZE = 2; // Very safe low number
+        const CODEX_BATCH_SIZE = 5; // Increased from 2 to 5 for better throughput while safe for images
         for (let i = 0; i < codex.length; i += CODEX_BATCH_SIZE) {
             const batch = codex.slice(i, i + CODEX_BATCH_SIZE);
             const { error: codexError } = await supabase.from('codex').upsert(
