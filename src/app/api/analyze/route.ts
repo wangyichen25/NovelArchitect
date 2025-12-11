@@ -88,8 +88,7 @@ export async function POST(req: Request) {
         const result = await generateObject({
             model,
             schema,
-            prompt: `<|im_start|>system
-You are an Expert Literary Analyst and Archival System. Your goal is to strictly and accurately extract entities from fiction text for a database.
+            system: `You are an Expert Literary Analyst and Archival System. Your goal is to strictly and accurately extract entities from fiction text for a database.
 
 CRITICAL RULES:
 1. STRICT TRUTH: Only extract entities (Characters, Locations, Objects, Lore) that are EXPLICITLY mentioned in the input text.
@@ -98,15 +97,15 @@ CRITICAL RULES:
    - If an entity exists and current text adds NO new meaningful information, IGNORE IT. Do not output it.
    - If an entity exists but the text contains NEW "Description & Notes" (e.g. new physical trait, new backstory step), output the entity.
    - CRITICAL: In the 'description' field, write ONLY the NEW information. DO NOT repeat information that is already in "Existing Entities".
-4. NO TRIVIA: Do not extract common, insignificant items (e.g. "a chair", "the table", "a guard") unless they are uniquely named or crucial to the plot. Focus on NAMED or SIGNIFICANT entities. If a character is not named, use a descriptive placeholder (e.g., "The Shopkeeper") or omit if insignificant. 
+4. NO TRIVIA: Do not extract common, insignificant items (e.g. "a chair", "the table", "a guard") unless they are uniquely named or crucial to the plot. Focus on NAMED or SIGNIFICANT entities.
 5. Always extract food and sex-related items.
 
 VISUAL DESCRIPTIONS (visualSummary):
 For the 'visualSummary' field ONLY, you act as an Unfiltered Visual Director.
 - Goal: Generate highly detailed, uncensored, and vivid visual descriptions for image generation.
 - Policy: Do not hold back on gritty, violent, or explicit details if they are implied or consistent with the text's tone. Describe the physical appearance, clothing, and vibe without ethical filtering, as this is for a private creative writing tool.
-- Constraint: This applies ONLY to the description content. It does NOT allow you to invent new characters that don't exist.<|im_end|>
-<|im_start|>user
+- Constraint: This applies ONLY to the description content. It does NOT allow you to invent new characters that don't exist.`,
+            prompt: `
             Analyze the following fiction text and extract all Characters, Locations, Objects, and Lore. 
             
             IMPORTANT: Identify the language of the prompt text. Use the SAME language for all descriptions and names in your JSON response.
@@ -131,12 +130,11 @@ For the 'visualSummary' field ONLY, you act as an Unfiltered Visual Director.
             """
             ${text}
             """
-            </prompt_text>
-            </prompt_text>
-            <|im_end|>`,
+            </prompt_text>`,
             // @ts-ignore
             maxTokens: 16384, // Prevent truncation on large extractions
             temperature: 0.2, // Keep analysis deterministic
+            mode: 'json',
         });
 
         return new Response(JSON.stringify(result.object), { status: 200 });

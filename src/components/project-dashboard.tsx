@@ -16,6 +16,7 @@ import { useUser } from "@/hooks/use-user";
 import { createClient } from "@/lib/supabase/client";
 import { uploadNovelToCloud, fetchUserNovels, downloadNovelFromCloud } from "@/lib/db/cloud";
 import { Cloud, LogIn, LogOut, RefreshCw } from "lucide-react";
+import { ThemeSwitcher } from "@/components/theme-switcher";
 
 
 export default function ProjectDashboard() {
@@ -287,51 +288,79 @@ export default function ProjectDashboard() {
     }
 
     return (
-        <div className="flex flex-col gap-8">
-            {/* Header / Auth */}
-            <div className="flex justify-between items-center pb-4 border-b mb-8">
-                <div>
-                    <h2 className="text-2xl font-semibold tracking-tight">My Workspace</h2>
-                    <p className="text-sm text-muted-foreground">Manage your novels and writing projects</p>
+        <div className="flex flex-col gap-10">
+            {/* Hero Section */}
+            <div className="relative rounded-2xl border border-border/50 bg-secondary/20 p-8 md:p-10 z-50">
+                {/* Background Container - Handles Clipping */}
+                <div className="absolute inset-0 overflow-hidden rounded-2xl -z-10">
+                    {/* Background Blobs/Effects would go here if we had them active, currently they were just bg-secondary/20 which is on the parent now, or we can move them back if we re-add blobs. */}
                 </div>
-                <div className="flex items-center gap-4">
-                    {authLoading ? (
-                        <span className="text-sm text-muted-foreground">Loading...</span>
-                    ) : user ? (
-                        <>
-                            <span className="text-sm text-muted-foreground hidden md:inline">
-                                {user.email?.replace('@novelarchitect.com', '')}
+
+                <div className="relative z-10 flex flex-col md:flex-row justify-between items-end gap-6">
+                    <div>
+                        <h2 className="text-3xl font-semibold tracking-tight text-foreground mb-2">
+                            Welcome Back{user?.email ? `, ${user.email.split('@')[0]}` : ''}
+                        </h2>
+                        <p className="text-muted-foreground font-light text-base max-w-lg">
+                            Continue building your worlds.
+                        </p>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        <ThemeSwitcher />
+                        {authLoading ? (
+                            <span className="text-sm text-muted-foreground animate-pulse">
+                                Loading...
                             </span>
-                            <Button variant="outline" size="sm" onClick={handleCloudSync} disabled={syncing}>
-                                <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''} sm:mr-2`} />
-                                <span className="hidden sm:inline">Sync Cloud</span>
+                        ) : user ? (
+                            <>
+                                <Button
+                                    variant="outline"
+                                    onClick={handleCloudSync}
+                                    disabled={syncing}
+                                    className="h-9 px-4 font-normal text-muted-foreground hover:text-foreground"
+                                >
+                                    <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''} sm:mr-2`} />
+                                    <span className="hidden sm:inline">Sync</span>
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    onClick={handleLogout}
+                                    className="h-9 w-9 text-muted-foreground hover:text-destructive transition-colors"
+                                >
+                                    <LogOut className="h-4 w-4" />
+                                </Button>
+                            </>
+                        ) : (
+                            <Button onClick={handleLogin} variant="outline" className="font-normal">
+                                <LogIn className="mr-2 h-4 w-4" /> Login
                             </Button>
-                            <Button variant="ghost" size="sm" onClick={handleLogout}>
-                                <LogOut className="h-4 w-4 sm:mr-2" />
-                                <span className="hidden sm:inline">Logout</span>
-                            </Button>
-                        </>
-                    ) : (
-                        <Button size="sm" onClick={handleLogin}>
-                            <LogIn className="mr-2 h-4 w-4" /> Login
-                        </Button>
-                    )}
+                        )}
+                    </div>
                 </div>
             </div>
 
-            <div className="flex flex-col md:flex-row items-center gap-4 justify-between">
+            {/* Actions Bar */}
+            <div className="flex flex-col md:flex-row items-center gap-6 justify-between animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
                 <div className="flex flex-col md:flex-row items-center gap-4 flex-1 w-full md:w-auto">
-                    <Input
-                        placeholder="New Novel Project Title..."
-                        value={newTitle}
-                        onChange={(e) => setNewTitle(e.target.value)}
-                        className="w-full md:max-w-md"
-                    />
-                    <Button onClick={createNovel} className="w-full md:w-auto">
-                        <Plus className="mr-2 h-4 w-4" /> Create Project
+                    <div className="relative w-full md:w-auto flex-1 md:max-w-md group">
+                        <div className="absolute inset-0 bg-primary/20 blur-lg rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                        <Input
+                            placeholder="Title of your next masterpiece..."
+                            value={newTitle}
+                            onChange={(e) => setNewTitle(e.target.value)}
+                            className="relative w-full bg-background/50 border-white/10 focus:border-primary/50 transition-all h-12 text-lg px-4 backdrop-blur-md"
+                        />
+                    </div>
+                    <Button
+                        onClick={createNovel}
+                        className="w-full md:w-auto h-12 px-8 shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all duration-300 bg-primary text-primary-foreground text-md font-medium tracking-wide"
+                    >
+                        <Plus className="mr-2 h-5 w-5" /> Create Project
                     </Button>
                 </div>
-                <div className="w-full md:w-auto flex justify-center md:justify-end">
+
+                <div className="w-full md:w-auto">
                     <input
                         type="file"
                         accept=".narch,.txt,.md,.docx"
@@ -339,47 +368,72 @@ export default function ProjectDashboard() {
                         ref={fileInputRef}
                         onChange={handleImport}
                     />
-                    <Button variant="secondary" onClick={() => fileInputRef.current?.click()} className="w-full md:w-auto">
-                        <Upload className="mr-2 h-4 w-4" /> Import Project
+                    <Button
+                        variant="secondary"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-full md:w-auto h-12 border border-white/5 bg-secondary/50 hover:bg-secondary/80 backdrop-blur-sm"
+                    >
+                        <Upload className="mr-2 h-4 w-4" /> Import
                     </Button>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Projects Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
                 {novels?.map((novel) => (
                     <div
                         key={novel.id}
-                        className="p-6 border rounded-xl hover:border-primary/50 cursor-pointer transition-all duration-300 bg-card text-card-foreground shadow-sm hover:shadow-md hover:-translate-y-1 flex flex-col justify-between h-48 group relative"
+                        className="group relative p-6 rounded-xl border border-border/40 bg-card hover:border-primary/20 transition-all duration-300 cursor-pointer flex flex-col justify-between h-56"
                         onClick={() => router.push(`/project/${novel.id}`)}
                     >
-                        <div>
-                            <h3 className="text-xl font-bold font-serif mb-2 line-clamp-2">{novel.title}</h3>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wider font-medium">
-                                Last edited: {new Date(novel.lastModified).toLocaleDateString()}
+                        <div className="relative z-10 flex flex-col h-full">
+                            <div className="flex justify-between items-start mb-4">
+                                <div className="h-10 w-10 rounded-lg bg-secondary/50 flex items-center justify-center text-muted-foreground group-hover:text-foreground transition-colors">
+                                    <BookOpen className="h-5 w-5" />
+                                </div>
+                                <span className="text-xs font-medium text-muted-foreground/60">
+                                    {new Date(novel.lastModified).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                </span>
+                            </div>
+
+                            <h3 className="text-xl font-semibold mb-2 line-clamp-1 text-foreground">
+                                {novel.title}
+                            </h3>
+
+                            <p className="text-sm text-muted-foreground line-clamp-2 font-light">
+                                {novel.author && novel.author !== "Unknown" ? `by ${novel.author}` : ""}
                             </p>
-                        </div>
-                        <div className="flex justify-end opacity-0 group-hover:opacity-100 transition-opacity gap-2">
-                            <Button variant="ghost" size="icon" onClick={(e) => exportNovel(e, novel.id)} title="Export">
-                                <Download className="h-4 w-4" />
-                            </Button>
-                            {user && (
-                                <Button variant="ghost" size="icon" onClick={(e) => handleCloudUpload(e, novel.id)} title="Upload to Cloud" disabled={syncing}>
-                                    <Cloud className="h-4 w-4" />
+
+                            <div className="mt-auto pt-4 flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                <Button variant="ghost" size="icon" onClick={(e) => exportNovel(e, novel.id)} title="Export" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                                    <Download className="h-4 w-4" />
                                 </Button>
-                            )}
-                            <Button variant="ghost" size="icon" onClick={(e) => deleteNovel(e, novel.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10">
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
+                                {user && (
+                                    <Button variant="ghost" size="icon" onClick={(e) => handleCloudUpload(e, novel.id)} title="Upload to Cloud" disabled={syncing} className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                                        <Cloud className="h-4 w-4" />
+                                    </Button>
+                                )}
+                                <Button variant="ghost" size="icon" onClick={(e) => deleteNovel(e, novel.id)} className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 ))}
+
                 {novels?.length === 0 && (
-                    <div className="col-span-full text-center py-20 text-muted-foreground">
-                        <BookOpen className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                        <p>No projects yet. Start your journey by creating one above.</p>
+                    <div className="col-span-full py-20 flex flex-col items-center justify-center text-center text-muted-foreground border border-dashed border-border/40 rounded-xl bg-secondary/5">
+                        <div className="h-16 w-16 rounded-full bg-secondary/50 flex items-center justify-center mb-4">
+                            <BookOpen className="h-8 w-8 opacity-40" />
+                        </div>
+                        <p className="text-lg font-medium mb-1">No projects yet</p>
+                        <p className="text-sm opacity-60 max-w-xs font-light">
+                            Create your first project above.
+                        </p>
                     </div>
                 )}
             </div>
         </div>
     );
 }
+

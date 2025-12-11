@@ -1,12 +1,17 @@
 
 import type { Metadata } from "next";
-// For now relying on standard sans/serif logic in Tailwind config or globals, 
-// but keeping the imports if I decide to use them later.
-// Actually, let's remove the Geist font for now and use standard system fonts as configured in globals.css 
-// or if I want to use google fonts I can add them. 
-// For "Premium" feel, I'll stick to the cleanest setup.
-
+import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-sans",
+});
+
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-serif",
+});
 
 export const metadata: Metadata = {
   title: "NovelArchitect",
@@ -14,6 +19,7 @@ export const metadata: Metadata = {
 };
 
 import { RealtimeProvider } from "@/components/providers/RealtimeProvider";
+import { ThemeProvider } from "@/components/theme-provider";
 
 export default function RootLayout({
   children,
@@ -24,10 +30,12 @@ export default function RootLayout({
     <html lang="en" className="dark" suppressHydrationWarning>
       {/* Defaulting to dark mode for premium feel as per instructions */}
       <body
-        className="antialiased min-h-screen bg-background text-foreground"
+        className={`${inter.variable} ${playfair.variable} antialiased min-h-screen bg-background text-foreground font-sans selection:bg-primary/20`}
       >
         <RealtimeProvider>
-          {children}
+          <ThemeProvider>
+            {children}
+          </ThemeProvider>
         </RealtimeProvider>
       </body>
     </html>

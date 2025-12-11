@@ -118,10 +118,48 @@ const NovelEditor = forwardRef<NovelEditorHandle, NovelEditorProps>(({ initialCo
                     return false;
                 },
                 mouseout: (view, event) => {
+                    // Logic: If on desktop (hover), mouseout usually clears it.
+                    // On mobile, tap (click) might trigger mouseover then click.
+                    // We want to persist if it was a CLICK.
+                    // However, detecting "was click" in mouseout is hard.
+                    // Simplification: We rely on the fact that tapping elsewhere will trigger other events.
+                    // BUT, to allow easy dismissal, let's keep mouseout clearing it for now.
+                    // If users complain tooltips vanish too fast on mobile, we can add a 'pinned' state.
+                    // For now, the request is just "compatibility". 
+                    // Tapping usually keeps hover state on iOS until tapped elsewhere.
+
                     const target = event.target as HTMLElement;
                     if (target.hasAttribute('data-entity-id')) {
                         setHoveredEntity(null);
                     }
+                    return false;
+                },
+                click: (view, event) => {
+                    const target = event.target as HTMLElement;
+                    if (target.hasAttribute('data-entity-id')) {
+                        // Force show (redundant if mouseover fired, but ensures it runs)
+                        // And prevents editor blur if needed?
+                        // event.preventDefault(); // Might stop editing
+                        const id = target.getAttribute('data-entity-id')!;
+                        const description = target.getAttribute('data-entity-description') || '';
+                        const category = target.getAttribute('data-entity-category') || 'object';
+                        const image = target.getAttribute('data-entity-image') || undefined;
+                        const rect = target.getBoundingClientRect();
+                        const name = target.innerText;
+
+                        setHoveredEntity({
+                            id,
+                            name,
+                            description,
+                            category,
+                            image,
+                            x: rect.left + window.scrollX,
+                            y: rect.bottom + window.scrollY
+                        });
+                        return true;
+                    }
+                    // If clicked elsewhere, clear it (if handling here)
+                    setHoveredEntity(null);
                     return false;
                 }
             }

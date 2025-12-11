@@ -5,60 +5,61 @@ import { syncFlags } from './sync-flags';
 
 let subscription: any = null;
 
-// Map Supabase snake_case to Dexie camelCase
-const mappers: Record<string, (payload: any) => any> = {
-    novels: (p) => ({
-        id: p.id,
-        title: p.title,
-        author: p.author,
-        createdAt: p.created_at,
-        lastModified: p.last_modified,
-        settings: p.settings
-    }),
-    acts: (p) => ({
-        id: p.id,
-        novelId: p.novel_id,
-        title: p.title,
-        order: p.order,
-        summary: p.summary
-    }),
-    chapters: (p) => ({
-        id: p.id,
-        actId: p.act_id,
-        title: p.title,
-        order: p.order,
-        summary: p.summary
-    }),
-    scenes: (p) => ({
-        id: p.id,
-        novelId: p.novel_id,
-        chapterId: p.chapter_id,
-        title: p.title,
-        content: p.content,
-        beats: p.beats,
-        order: p.order,
-        lastModified: p.last_modified,
-        metadata: p.metadata,
-        cachedMentions: p.cached_mentions
-    }),
-    codex: (p) => ({
-        id: p.id,
-        novelId: p.novel_id,
-        category: p.category,
-        name: p.name,
-        aliases: p.aliases,
-        description: p.description,
-        visualSummary: p.visual_summary,
-        image: p.image,
-        gallery: p.gallery,
-        relations: p.relations
-    }),
-    prompt_presets: (p) => ({
-        id: p.id,
-        name: p.name,
-        prompt: p.prompt,
-        lastUsed: p.last_used
-    })
+// Map Supabase snake_case columns to Dexie camelCase properties
+const tableMappings: Record<string, Record<string, string>> = {
+    novels: {
+        id: 'id',
+        user_id: 'userId', // Not stored in local Dexie usually? Check schema. Novel schema has id, lastModified... wait using schema.ts from memory/view
+        title: 'title',
+        author: 'author',
+        created_at: 'createdAt',
+        last_modified: 'lastModified',
+        settings: 'settings'
+    },
+    acts: {
+        id: 'id',
+        novel_id: 'novelId',
+        title: 'title',
+        order: 'order',
+        summary: 'summary'
+    },
+    chapters: {
+        id: 'id',
+        act_id: 'actId',
+        title: 'title',
+        order: 'order',
+        summary: 'summary'
+    },
+    scenes: {
+        id: 'id',
+        novel_id: 'novelId',
+        chapter_id: 'chapterId',
+        title: 'title',
+        content: 'content',
+        beats: 'beats',
+        order: 'order',
+        last_modified: 'lastModified',
+        metadata: 'metadata',
+        cached_mentions: 'cachedMentions'
+    },
+    codex: {
+        id: 'id',
+        novel_id: 'novelId',
+        category: 'category',
+        name: 'name',
+        aliases: 'aliases',
+        description: 'description',
+        visual_summary: 'visualSummary',
+        image: 'image',
+        gallery: 'gallery',
+        relations: 'relations'
+    },
+    prompt_presets: {
+        id: 'id',
+        name: 'name',
+        prompt: 'prompt',
+        last_used: 'lastUsed'
+    }
 };
 
 export const subscribeToRealtime = (userId: string) => {
@@ -76,7 +77,7 @@ export const subscribeToRealtime = (userId: string) => {
 
     console.log('Starting Realtime Subscription for user:', userId);
 
-    const tables = ['novels', 'acts', 'chapters', 'scenes', 'codex', 'prompt_presets'];
+    const tables = Object.keys(tableMappings);
 
     // Create a single channel for all tables
     const channel = supabase.channel('db-changes');
@@ -91,12 +92,39 @@ export const subscribeToRealtime = (userId: string) => {
                 syncFlags.isApplyingCloudUpdate = true; // LOCK
                 try {
                     const { eventType, new: newRec, old: oldRec } = payload;
-                    const mapper = mappers[table];
+                    const mapping = tableMappings[table];
 
-                    if (eventType === 'INSERT' || eventType === 'UPDATE') {
-                        const localData = mapper(newRec);
+                    if (!mapping) return;
+
+                    if (eventType === 'INSERT') {
+                        // For INSERT, we try to map all available fields
+                        const localData: any = {};
+                        for (const [remote, local] of Object.entries(mapping)) {
+                            if (newRec[remote] !== undefined) {
+                                localData[local] = newRec[remote];
+                            }
+                        }
+                        // Ensure ID is present
+                        if (!localData.id && newRec.id) localData.id = newRec.id;
+
                         // @ts-ignore
                         await db.table(table).put(localData);
+
+                    } else if (eventType === 'UPDATE') {
+                        // For UPDATE, we ONLY map fields that are present in the payload (partial supported)
+                        const changes: any = {};
+                        for (const [remote, local] of Object.entries(mapping)) {
+                            if (newRec[remote] !== undefined) {
+                                changes[local] = newRec[remote];
+                            }
+                        }
+
+                        if (Object.keys(changes).length > 0 && newRec.id) {
+                            // Use 'update' (merge) instead of 'put' (replace)
+                            // @ts-ignore
+                            await db.table(table).update(newRec.id, changes);
+                        }
+
                     } else if (eventType === 'DELETE') {
                         // @ts-ignore
                         await db.table(table).delete(oldRec.id);
@@ -116,8 +144,6 @@ export const subscribeToRealtime = (userId: string) => {
         } else if (status === 'CHANNEL_ERROR') {
             const err = new Error('Realtime channel error. Check connection and permissions.');
             console.error(err);
-            // Attempt to recover or notify?
-            // For now, simple logging is safer than infinite retry loops
         } else if (status === 'TIMED_OUT') {
             console.warn('Realtime connection timed out. Retrying...');
         } else {
