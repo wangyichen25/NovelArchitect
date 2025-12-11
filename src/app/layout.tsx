@@ -13,6 +13,8 @@ export const metadata: Metadata = {
   description: "A Local-First, AI-Augmented IDE for Fiction",
 };
 
+import { RealtimeProvider } from "@/components/providers/RealtimeProvider";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -24,7 +26,9 @@ export default function RootLayout({
       <body
         className="antialiased min-h-screen bg-background text-foreground"
       >
-        {children}
+        <RealtimeProvider>
+          {children}
+        </RealtimeProvider>
       </body>
     </html>
   );

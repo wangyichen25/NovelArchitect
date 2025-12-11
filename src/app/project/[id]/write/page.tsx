@@ -147,11 +147,13 @@ export default function WritePage() {
                 const text = JSON.stringify(content);
                 const wordCount = text.length / 5; // Very rough approx
 
+                console.warn('[Editor] Saving scene content to DB...', activeSceneId);
                 await db.scenes.update(activeSceneId, {
                     content,
                     lastModified: Date.now(),
                     // partial update metadata?
                 });
+                console.warn('[Editor] Save complete.');
                 setStatus("saved");
             } catch (e) {
                 console.error(e);

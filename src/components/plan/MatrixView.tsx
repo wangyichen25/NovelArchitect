@@ -37,7 +37,10 @@ export default function MatrixView() {
     const locations = useLiveQuery(() => db.codex.where({ novelId, category: 'location' }).toArray()) || [];
 
     const updateScene = (id: string, field: string, value: any) => {
-        db.scenes.update(id, { [field]: value });
+        console.log(`[UI] Updating scene ${id}: ${field} = ${value}`);
+        db.scenes.update(id, { [field]: value }).catch(err => {
+            console.error('[UI] DB Update Failed:', err);
+        });
     };
 
     const updateMetadata = (id: string, metaField: string, value: any) => {
