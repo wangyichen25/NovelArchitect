@@ -1,5 +1,4 @@
 import { db } from "@/lib/db";
-import { KeyChain } from "@/lib/ai/keychain";
 import { v4 as uuidv4 } from "uuid";
 import { CodexEntry } from "@/lib/db/schema";
 
@@ -14,7 +13,6 @@ export class AnalysisService {
     static async getApiKey(novelId: string, provider: string): Promise<string | null> {
         // PRIORITY: Account Settings (Cloud) > Local Storage (Global)
         let apiKey = '';
-        const pin = localStorage.getItem('novel-architect-pin-hash');
 
         if (provider === 'ollama') return '';
 
@@ -25,18 +23,14 @@ export class AnalysisService {
 
         if (user) {
             const { data: profile } = await supabase.from('profiles').select('settings').eq('id', user.id).single();
-            if (profile && profile.settings && profile.settings.apiKey && pin) {
-                const decrypted = await KeyChain.decrypt(profile.settings.apiKey, pin);
-                if (decrypted) return decrypted;
+            if (profile && profile.settings && profile.settings.apiKey) {
+                return profile.settings.apiKey;
             }
         }
 
         // 2. Fallback to Local Storage Key
-        const encrypted = localStorage.getItem(`novel-architect-key-${provider}`);
-        if (encrypted && pin) {
-            const decrypted = await KeyChain.decrypt(encrypted, pin);
-            if (decrypted) apiKey = decrypted;
-        }
+        const stored = localStorage.getItem(`novel-architect-key-${provider}`);
+        if (stored) apiKey = stored;
 
         return apiKey;
     }
@@ -73,7 +67,7 @@ export class AnalysisService {
         let apiKey = settings.apiKey;
         if (!apiKey && settings.provider !== 'ollama') {
             const key = await this.getApiKey(novelId, settings.provider);
-            if (!key) throw new Error("Could not decrypt API Key");
+            if (!key) throw new Error("API Key not found. Please set your API Key in Settings.");
             apiKey = key;
         }
 

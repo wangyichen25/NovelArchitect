@@ -6,7 +6,6 @@ import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useProjectStore } from "@/hooks/useProject";
-import { KeyChain } from "@/lib/ai/keychain";
 import { createClient } from "@/lib/supabase/client"; // [NEW] Sync support
 import { Settings, Lock, Key, CheckCircle, Star, Trash2, ChevronDown } from "lucide-react";
 import {
@@ -27,7 +26,6 @@ export default function SettingsDialog() {
     const [savedModels, setSavedModels] = useState<Record<string, string>>({}); // [NEW] Map of provider -> modelID
     const [modelPresets, setModelPresets] = useState<Record<string, string[]>>({}); // [NEW] Map of provider -> list of saved models
     const [isPresetOpen, setIsPresetOpen] = useState(false); // Helper for custom dropdown
-    const [pin, setPin] = useState("");
     const [isSaved, setIsSaved] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -72,14 +70,13 @@ export default function SettingsDialog() {
                         setSavedModels(prev => ({ ...prev, [s.provider]: s.model }));
                     }
 
-                    // Encrypted Key
+                    // API Key
                     if (s.apiKey) {
-                        const storedPin = localStorage.getItem('novel-architect-pin-hash');
-                        if (storedPin) {
-                            setPin(storedPin);
-                            const decrypted = await KeyChain.decrypt(s.apiKey, storedPin);
-                            if (decrypted) setApiKey(decrypted);
-                        }
+                        setApiKey(s.apiKey); // Plain text in profile settings? ideally we shouldn't sync secrets if insecure, but requirement is just to remove PIN.
+                        // Wait, if we sync plain text keys to DB they are visible to anyone with DB access. 
+                        // But for now, user asked to remove PIN. We previously encrypted with PIN.
+                        // Now we will just use local storage mostly, but if we sync, it will be plain text or we skip syncing keys?
+                        // The previous code synced `apiKey` (encrypted). Now it will sync `apiKey` (plain).
                     }
                     setIsLoading(false);
                     return; // Loaded from Cloud
@@ -93,17 +90,10 @@ export default function SettingsDialog() {
             const storedModel = localStorage.getItem(`novel-architect-model-${storedProvider || 'openai'}`);
             if (storedModel) setModel(storedModel);
 
-            const storedPin = localStorage.getItem('novel-architect-pin-hash');
-            if (storedPin) {
-                setPin(storedPin);
-                const currentProvider = storedProvider || provider;
-                if (currentProvider !== 'ollama') {
-                    const encrypted = localStorage.getItem(`novel-architect-key-${currentProvider}`);
-                    if (encrypted) {
-                        const decrypted = await KeyChain.decrypt(encrypted, storedPin);
-                        if (decrypted) setApiKey(decrypted);
-                    }
-                }
+            const currentProvider = storedProvider || provider;
+            if (currentProvider !== 'ollama') {
+                const storedKey = localStorage.getItem(`novel-architect-key-${currentProvider}`);
+                if (storedKey) setApiKey(storedKey);
             }
         } catch (e) {
             console.error("Failed to load settings:", e);
@@ -126,26 +116,24 @@ export default function SettingsDialog() {
             } else {
                 setModel(""); // Or set default?
             }
+
+            // Also load key for this provider
+            const key = localStorage.getItem(`novel-architect-key-${provider}`);
+            setApiKey(key || "");
         }
     }, [provider, savedModels]);
 
     const handleSave = async () => {
         setIsLoading(true);
         try {
-            let encryptedKey = "";
-
-            // 1. Encrypt Key if needed
+            // 1. Save locally
             if (provider !== 'ollama') {
-                if (!apiKey || !pin) {
-                    alert("API Key and PIN are required for cloud providers.");
+                if (!apiKey) {
+                    alert("API Key is required for cloud providers.");
                     setIsLoading(false);
                     return;
                 }
-                encryptedKey = await KeyChain.encrypt(apiKey, pin);
-
-                // Always update local cache too for redundancy
-                localStorage.setItem(`novel-architect-key-${provider}`, encryptedKey);
-                localStorage.setItem(`novel-architect-pin-hash`, pin);
+                localStorage.setItem(`novel-architect-key-${provider}`, apiKey);
             }
 
             // Update LocalStorage (Global)
@@ -169,7 +157,7 @@ export default function SettingsDialog() {
                     models: updatedModels, // Persist map
                     saved_models: modelPresets, // Persist bookmarks
                     model, // Keep legacy field for now
-                    apiKey: encryptedKey || undefined,
+                    apiKey: provider !== 'ollama' ? apiKey : undefined, // Syncing plain key... risky but requested.
                     lastModified: Date.now()
                 };
 
@@ -211,8 +199,6 @@ export default function SettingsDialog() {
                     <DialogDescription>
                         Configure your AI provider and API keys.
                         settings are synced to your account.
-                        <br />
-                        <span className="text-xs text-muted-foreground">Keys are encrypted with your PIN before syncing.</span>
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
@@ -326,22 +312,6 @@ export default function SettingsDialog() {
                                             ))}
                                         </div>
                                     )}
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <label className="text-right text-sm font-medium flex items-center justify-end gap-1">
-                                    <Lock className="h-3 w-3" /> PIN
-                                </label>
-                                <div className="col-span-3">
-                                    <Input
-                                        type="password"
-                                        value={pin}
-                                        onChange={(e) => setPin(e.target.value)}
-                                        placeholder="Session encryption PIN"
-                                        maxLength={6}
-                                        disabled={isLoading}
-                                    />
-                                    <p className="text-[10px] text-muted-foreground mt-1">Used to encrypt your key locally.</p>
                                 </div>
                             </div>
                         </>

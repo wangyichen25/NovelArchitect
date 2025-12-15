@@ -81,3 +81,22 @@ export interface PromptPreset {
     prompt: string;
     lastUsed?: number;
 }
+
+export interface AgentState {
+    id: string; // UUID
+    userId: string;
+    novelId: string;
+    sceneId?: string | null;
+    instructions?: string;
+    maxPasses: number; // default 3
+    minScore: number; // default 0.8
+    maxHunks?: number; // default 5
+    maxTargets?: number; // default 10
+    sectionPlan?: any; // JSON
+    sectionsDrafted?: any; // JSON
+    formatGuidance?: string;
+    passIndex: number; // default 0
+    history?: any[]; // JSON - LogEntry[]
+    actionHistory?: any[]; // JSON - HistoryEntry[]
+    lastModified?: number;
+}

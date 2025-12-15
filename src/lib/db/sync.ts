@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/client'
 import { db } from './index'
-import { Scene, Novel, Act, Chapter, CodexEntry } from './schema'
+import { Scene, Novel, Act, Chapter, CodexEntry, AgentState } from './schema'
 
 // Queue system to prevent race conditions for dependent entities (Novel -> Act -> Chapter -> Scene)
 let syncQueue: Promise<void> = Promise.resolve();
@@ -24,13 +24,14 @@ function debouncedSync(key: string, operation: () => Promise<void>, delay: numbe
     return new Promise((resolve, reject) => {
         const timer = setTimeout(() => {
             debounceMap.delete(key);
-            console.log(`[Sync] Executing debounced sync for ${key}`);
+            console.log(`[Sync] ⏳ Executing debounced sync for ${key}`);
             addToQueue(operation).then(resolve).catch((err) => {
                 console.error(`[Sync] Error executing ${key}:`, err);
                 reject(err);
             });
         }, delay);
 
+        console.log(`[Sync] 🕒 Scheduled debounced sync for ${key} in ${delay}ms`);
         debounceMap.set(key, { timer, resolve });
     });
 }
@@ -48,6 +49,7 @@ async function getCurrentUserId() {
 
 // Internal Immediate Sync Functions (Bypass Debounce & Queue - Assumes called from within Queue or Debounce)
 async function _syncNovelImmediate(novelId: string): Promise<void> {
+    if (!db) { console.error('[Sync] ❌ DB instance missing!'); return; }
     const userId = await getCurrentUserId();
     if (!userId) return;
 
@@ -74,6 +76,7 @@ async function _syncNovelImmediate(novelId: string): Promise<void> {
 }
 
 async function _syncActImmediate(act: Act): Promise<void> {
+    if (!db) { console.error('[Sync] ❌ DB instance missing!'); return; }
     const userId = await getCurrentUserId();
     if (!userId) return;
 
@@ -99,6 +102,7 @@ async function _syncActImmediate(act: Act): Promise<void> {
 }
 
 async function _syncChapterImmediate(chapter: Chapter): Promise<void> {
+    if (!db) { console.error('[Sync] ❌ DB instance missing!'); return; }
     const userId = await getCurrentUserId();
     if (!userId) return;
 
@@ -126,6 +130,62 @@ async function _syncChapterImmediate(chapter: Chapter): Promise<void> {
     }
 }
 
+async function _syncSceneImmediate(scene: Scene): Promise<void> {
+    const contentStr = JSON.stringify(scene.content);
+    console.log(`[Sync] 🎬 Processing Scene Sync: ${scene.id} - Length: ${contentStr.length}`);
+    console.log(`[Sync] 📄 Content Snippet: ${contentStr.substring(0, 100)}`);
+    if (!db) { console.error('[Sync] ❌ DB instance missing!'); return; }
+    const userId = await getCurrentUserId();
+    if (!userId) return;
+
+    const supabase = createClient();
+    const { error } = await supabase.from('scenes').upsert({
+        id: scene.id,
+        user_id: userId,
+        novel_id: scene.novelId,
+        chapter_id: scene.chapterId,
+        title: scene.title,
+        content: scene.content,
+        beats: scene.beats,
+        order: scene.order,
+        last_modified: scene.lastModified,
+        metadata: scene.metadata,
+        cached_mentions: scene.cachedMentions
+    });
+
+    if (error) {
+        if (error.code === '23503') {
+            console.warn('Sync Scene failed due to missing parent. FAST FIXING lineage...', scene.chapterId);
+
+            // Use IMMEDIATE syncs to fix lineage
+            const chapter = await db.chapters.get(scene.chapterId);
+            if (chapter) {
+                await _syncChapterImmediate(chapter);
+
+                const novel = await db.novels.get(scene.novelId);
+                if (novel) await _syncNovelImmediate(novel.id);
+
+                console.log('Retrying Scene Sync...');
+                await supabase.from('scenes').upsert({
+                    id: scene.id,
+                    user_id: userId,
+                    novel_id: scene.novelId,
+                    chapter_id: scene.chapterId,
+                    title: scene.title,
+                    content: scene.content,
+                    beats: scene.beats,
+                    order: scene.order,
+                    last_modified: scene.lastModified,
+                    metadata: scene.metadata,
+                    cached_mentions: scene.cachedMentions
+                });
+            }
+        } else {
+            console.error('Auto-Sync Scene Error:', JSON.stringify(error, null, 2));
+        }
+    }
+}
+
 // Public Debounced Functions
 export function syncNovel(novelId: string): Promise<void> {
     return debouncedSync(`novel_${novelId}`, () => _syncNovelImmediate(novelId));
@@ -140,66 +200,12 @@ export function syncChapter(chapter: Chapter): Promise<void> {
 }
 
 export function syncScene(scene: Scene): Promise<void> {
-    return debouncedSync(`scene_${scene.id}`, async () => {
-        const userId = await getCurrentUserId();
-        if (!userId) return;
-
-        const supabase = createClient();
-        const { error } = await supabase.from('scenes').upsert({
-            id: scene.id,
-            user_id: userId,
-            novel_id: scene.novelId,
-            chapter_id: scene.chapterId,
-            title: scene.title,
-            content: scene.content,
-            beats: scene.beats,
-            order: scene.order,
-            last_modified: scene.lastModified,
-            metadata: scene.metadata,
-            cached_mentions: scene.cachedMentions
-        });
-
-        if (error) {
-            if (error.code === '23503') {
-                console.warn('Sync Scene failed due to missing parent. FAST FIXING lineage...', scene.chapterId);
-
-                // Use IMMEDIATE syncs to fix lineage
-                const chapter = await db.chapters.get(scene.chapterId);
-                if (chapter) {
-                    await _syncChapterImmediate(chapter);
-
-                    const novel = await db.novels.get(scene.novelId);
-                    if (novel) await _syncNovelImmediate(novel.id);
-
-                    // We don't retry immediately here because debounce will retry if user types? 
-                    // No, we should retry THIS operation immediately inside the queue.
-                    // But we are inside the debounced operation, so we can't easily "retry" the debounce wrapper.
-                    // We can just call the upsert again here.
-
-                    console.log('Retrying Scene Sync...');
-                    await supabase.from('scenes').upsert({
-                        id: scene.id,
-                        user_id: userId,
-                        novel_id: scene.novelId,
-                        chapter_id: scene.chapterId,
-                        title: scene.title,
-                        content: scene.content,
-                        beats: scene.beats,
-                        order: scene.order,
-                        last_modified: scene.lastModified,
-                        metadata: scene.metadata,
-                        cached_mentions: scene.cachedMentions
-                    });
-                }
-            } else {
-                console.error('Auto-Sync Scene Error:', JSON.stringify(error, null, 2));
-            }
-        }
-    });
+    return debouncedSync(`scene_${scene.id}`, () => _syncSceneImmediate(scene));
 }
 
 export function syncCodex(codex: CodexEntry): Promise<void> {
     return debouncedSync(`codex_${codex.id}`, async () => {
+        if (!db) { console.error('[Sync] ❌ DB instance missing!'); return; }
         const userId = await getCurrentUserId();
         if (!userId) return;
 
@@ -246,6 +252,7 @@ export function syncCodex(codex: CodexEntry): Promise<void> {
 
 export function deleteEntity(table: string, id: string) {
     return addToQueue(async () => {
+        console.log(`[Sync] 🗑️ Deleting ${table} id=${id}`);
         const userId = await getCurrentUserId();
         if (!userId) return;
 
@@ -264,6 +271,7 @@ export function deleteEntity(table: string, id: string) {
 
 export function syncPromptPreset(preset: import('./schema').PromptPreset): Promise<void> {
     return debouncedSync(`prompt_preset_${preset.id}`, async () => {
+        if (!db) { console.error('[Sync] ❌ DB instance missing!'); return; }
         const userId = await getCurrentUserId();
         if (!userId) return;
 
@@ -284,5 +292,77 @@ export function syncPromptPreset(preset: import('./schema').PromptPreset): Promi
             console.error('Payload:', { id: preset.id, name: preset.name });
         }
     });
+}
+
+async function _syncAgentStateImmediate(state: AgentState): Promise<void> {
+    if (!db) { console.error('[Sync] ❌ DB instance missing!'); return; }
+    const userId = await getCurrentUserId();
+    if (!userId) return;
+
+    const supabase = createClient();
+    const { error } = await supabase.from('agent_state').upsert({
+        id: state.id,
+        user_id: userId,
+        novel_id: state.novelId,
+        scene_id: state.sceneId,
+        instructions: state.instructions,
+        max_passes: state.maxPasses,
+        min_score: state.minScore,
+        max_hunks: state.maxHunks,
+        max_targets: state.maxTargets,
+        section_plan: state.sectionPlan,
+        sections_drafted: state.sectionsDrafted,
+        format_guidance: state.formatGuidance,
+        pass_index: state.passIndex,
+        history: state.history,
+        action_history: state.actionHistory,
+        last_modified: state.lastModified
+    });
+
+    if (error) {
+        if (error.code === '23503') {
+            console.warn('Sync AgentState failed due to missing parent. Fixing...');
+
+            // Try correcting Novel first
+            await _syncNovelImmediate(state.novelId);
+
+            // If we have a Scene, try syncing that too
+            if (state.sceneId) {
+                const scene = await db.scenes.get(state.sceneId);
+                if (scene) {
+                    await _syncSceneImmediate(scene);
+                }
+            }
+
+            // Retry upsert
+            const { error: retryError } = await supabase.from('agent_state').upsert({
+                id: state.id,
+                user_id: userId,
+                novel_id: state.novelId,
+                scene_id: state.sceneId,
+                instructions: state.instructions,
+                max_passes: state.maxPasses,
+                min_score: state.minScore,
+                max_hunks: state.maxHunks,
+                max_targets: state.maxTargets,
+                section_plan: state.sectionPlan,
+                sections_drafted: state.sectionsDrafted,
+                format_guidance: state.formatGuidance,
+                pass_index: state.passIndex,
+                history: state.history,
+                action_history: state.actionHistory,
+                last_modified: state.lastModified
+            });
+            if (retryError) {
+                console.error('Auto-Sync AgentState Retry Error:', retryError);
+            }
+        } else {
+            console.error('Auto-Sync AgentState Error:', JSON.stringify(error, null, 2));
+        }
+    }
+}
+
+export function syncAgentState(state: AgentState): Promise<void> {
+    return debouncedSync(`agent_state_${state.id}`, () => _syncAgentStateImmediate(state));
 }
 

@@ -17,6 +17,7 @@ import { createClient } from "@/lib/supabase/client";
 import { uploadNovelToCloud, fetchUserNovels, downloadNovelFromCloud } from "@/lib/db/cloud";
 import { Cloud, LogIn, LogOut, RefreshCw } from "lucide-react";
 import { ThemeSwitcher } from "@/components/theme-switcher";
+import { parseEpub } from "@/lib/epub";
 
 
 export default function ProjectDashboard() {
@@ -148,7 +149,80 @@ export default function ProjectDashboard() {
                 return;
             }
 
-            // 2. Handle Text / DOCX Import
+            // 2. Handle EPUB Import
+            if (file.name.endsWith('.epub')) {
+                const chapters = await parseEpub(file);
+                const id = uuidv4();
+
+                await db.novels.add({
+                    id,
+                    title: file.name.replace(/\.[^/.]+$/, ""),
+                    author: "Unknown",
+                    createdAt: Date.now(),
+                    lastModified: Date.now(),
+                    settings: {
+                        theme: "system",
+                        aiProvider: "ollama",
+                    },
+                });
+
+                // Create default Act
+                const actId = uuidv4();
+                await db.acts.add({
+                    id: actId,
+                    novelId: id,
+                    title: "Act 1",
+                    order: 0,
+                    summary: "Imported EPUB Content"
+                });
+
+                // Create Scenes from Chapters
+                // We will create a new Chapter for each EPUB chapter if they are large, 
+                // or just treat them as scenes in one big chapter? 
+                // Standard EPUB structure usually has one file per chapter.
+                // Let's create a wrapper Chapter 1 and put scenes in it, OR
+                // if we want to mirror structure, maybe map EPUB chapters to Database Chapters?
+                // For simplicity and editing, let's map EPUB chapters to SCENES, grouped in one "Imported" Chapter.
+                // Rationale: Users often write one scene per file in other tools.
+
+                const chapterId = uuidv4();
+                await db.chapters.add({
+                    id: chapterId,
+                    actId: actId,
+                    title: "Imported Chapters",
+                    order: 0,
+                    summary: "Content from EPUB"
+                });
+
+                const newScenes: Scene[] = chapters.map((ch, index) => {
+                    return {
+                        id: uuidv4(),
+                        novelId: id,
+                        chapterId: chapterId,
+                        title: ch.title,
+                        content: ch.content,
+                        beats: "",
+                        order: index,
+                        lastModified: Date.now(),
+                        metadata: {
+                            status: 'draft',
+                            wordCount: ch.content.replace(/<[^>]*>/g, '').split(/\s+/).length,
+                            povCharacterId: null,
+                            locationId: null,
+                            timeOfDay: "Unknown"
+                        },
+                        cachedMentions: []
+                    };
+                });
+
+                await db.scenes.bulkAdd(newScenes);
+
+                alert("EPUB Import Successful!");
+                router.push(`/project/${id}/write`);
+                return;
+            }
+
+            // 3. Handle Text / DOCX Import
             let content = "";
             let title = file.name.replace(/\.[^/.]+$/, "");
 
@@ -360,7 +434,7 @@ export default function ProjectDashboard() {
                 <div className="w-full md:w-auto">
                     <input
                         type="file"
-                        accept=".narch,.txt,.md,.docx"
+                        accept=".narch,.txt,.md,.docx,.epub"
                         className="hidden"
                         ref={fileInputRef}
                         onChange={handleImport}

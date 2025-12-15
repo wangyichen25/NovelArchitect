@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { db } from "@/lib/db";
 import { v4 as uuidv4 } from "uuid";
 import { Trash2, Save, Copy, Loader2, Image as ImageIcon, X, Merge } from "lucide-react";
-import { KeyChain } from "@/lib/ai/keychain";
 import { AnalysisService } from "@/lib/services/analysis";
 import MergeCodexDialog from "./MergeCodexDialog";
 import { useTaskQueue } from "@/components/providers/TaskQueueProvider";
@@ -300,10 +299,8 @@ export default function EntityCard({ entry, onSave, onDelete }: { entry: CodexEn
                                                 }
 
                                                 // 2. Call API
-                                                const encrypted = localStorage.getItem('novel-architect-key-openrouter');
-                                                const pin = localStorage.getItem('novel-architect-pin-hash');
-                                                if (!encrypted || !pin) throw new Error("Missing API Key");
-                                                const apiKey = await KeyChain.decrypt(encrypted, pin);
+                                                const apiKey = localStorage.getItem('novel-architect-key-openrouter');
+                                                if (!apiKey) throw new Error("Missing API Key");
 
                                                 const res = await fetch('/api/generate-image', {
                                                     method: 'POST',

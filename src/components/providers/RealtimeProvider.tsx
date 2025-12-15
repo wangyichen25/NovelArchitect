@@ -6,11 +6,10 @@ import { subscribeToRealtime } from '@/lib/db/realtime';
 
 export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     const [userId, setUserId] = useState<string | null>(null);
+    const [supabase] = useState(() => createClient());
 
     useEffect(() => {
         const fetchUser = async () => {
-            const supabase = createClient();
-
             // Initial fetch
             const { data: { session } } = await supabase.auth.getSession();
             if (session?.user?.id) {
@@ -27,19 +26,19 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
             };
         };
         fetchUser();
-    }, []);
+    }, [supabase]);
 
     useEffect(() => {
         if (!userId) return;
 
-        console.log('[RealtimeProvider] Connecting for user:', userId);
-        const unsubscribe = subscribeToRealtime(userId);
+        console.log('[RealtimeProvider] 🔌 Connecting for user:', userId);
+        const unsubscribe = subscribeToRealtime(supabase, userId);
 
         return () => {
-            console.log('[RealtimeProvider] Cleaning up subscription for user:', userId);
+            console.log('[RealtimeProvider] 🧹 Cleaning up subscription for user:', userId);
             if (unsubscribe) unsubscribe();
         };
-    }, [userId]);
+    }, [userId, supabase]);
 
     return <>{children}</>;
 }
