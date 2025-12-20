@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/client';
+
 import { db } from './index';
 import { syncFlags } from './sync-flags';
 
@@ -59,12 +59,31 @@ const tableMappings: Record<string, Record<string, string>> = {
         name: 'name',
         prompt: 'prompt',
         last_used: 'lastUsed'
+    },
+    agent_state: {
+        id: 'id',
+        user_id: 'userId',
+        novel_id: 'novelId',
+        scene_id: 'sceneId',
+        instructions: 'instructions',
+        max_passes: 'maxPasses',
+        min_score: 'minScore',
+        max_hunks: 'maxHunks',
+        max_targets: 'maxTargets',
+        section_plan: 'sectionPlan',
+        sections_drafted: 'sectionsDrafted',
+        format_guidance: 'formatGuidance',
+        pass_index: 'passIndex',
+        history: 'history',
+        action_history: 'actionHistory',
+        citation_targets: 'citationTargets',
+        existing_citations: 'existingCitations',
+        last_modified: 'lastModified'
     }
 };
 
-export const subscribeToRealtime = (userId: string) => {
-    // Create client instance inside function to ensure it picks up the latest session (cookies/storage)
-    const supabase = createClient();
+export const subscribeToRealtime = (supabase: any, userId: string) => {
+    // Client is passed in to ensure we use the same authenticated instance
 
     if (subscription) {
         return () => subscription.unsubscribe();
@@ -86,8 +105,8 @@ export const subscribeToRealtime = (userId: string) => {
         channel.on(
             'postgres_changes',
             { event: '*', schema: 'public', table: table },
-            async (payload) => {
-                console.log(`Realtime update received for ${table}:`, payload.eventType);
+            async (payload: any) => {
+                console.log(`[Realtime] 🟢 Update received for table: ${table}, Event: ${payload.eventType}`, payload);
 
                 syncFlags.isApplyingCloudUpdate = true; // LOCK
                 try {
@@ -138,21 +157,24 @@ export const subscribeToRealtime = (userId: string) => {
         );
     });
 
-    subscription = channel.subscribe((status) => {
+    subscription = channel.subscribe((status: string, err: any) => {
+        console.log(`[Realtime] 📡 Channel Status Change: ${status}`, err || '');
         if (status === 'SUBSCRIBED') {
-            console.log('Realtime connected!');
+            console.log('[Realtime] ✅ Connected and subscribed!');
         } else if (status === 'CHANNEL_ERROR') {
-            const err = new Error('Realtime channel error. Check connection and permissions.');
-            console.error(err);
+            console.warn('[Realtime] Channel error. Attempting to reconnect...', err);
+            // Verify permissions or simple transient network issue
+            // const errorMsg = new Error('Realtime channel error. Check connection and permissions.');
+            // console.error(errorMsg, err);
         } else if (status === 'TIMED_OUT') {
             console.warn('Realtime connection timed out. Retrying...');
         } else {
-            console.log('Realtime status:', status);
+            console.log('[Realtime] ℹ️ Status:', status);
         }
     });
 
     return () => {
-        console.log('Unsubscribing from Realtime...');
+        console.log('[Realtime] 🛑 Unsubscribing...');
         supabase.removeChannel(channel);
         subscription = null;
     };

@@ -12,6 +12,10 @@ import { v4 as uuidv4 } from 'uuid';
 import { Button } from "@/components/ui/button";
 import { Plus, Save, ChevronLeft, ChevronRight, Sparkles, Loader2 } from "lucide-react";
 
+
+import { AIWorkspace } from "@/components/writer/AIWorkspace";
+import { extractTextFromContent } from "@/lib/editor-utils";
+
 export default function WritePage() {
     const params = useParams();
     const novelId = params.id as string;
@@ -20,6 +24,11 @@ export default function WritePage() {
     const saveTimeoutRef = useRef<NodeJS.Timeout>(null);
     const editorRef = useRef<NovelEditorHandle>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [isAIWorkspaceOpen, setIsAIWorkspaceOpen] = useState(false);
+    const [remoteTrigger, setRemoteTrigger] = useState(0);
+
+    // Local state for real-time text sync with AI Workspace
+    const [currentContent, setCurrentContent] = useState<any>(null);
 
     // Fetch all scenes for this novel to show selector
     const scenes = useLiveQuery(
@@ -39,6 +48,13 @@ export default function WritePage() {
         async () => await db.novels.get(novelId),
         [novelId]
     );
+
+    // 4. Sync local content when active scene changes (from DB load or switch)
+    useEffect(() => {
+        if (activeScene) {
+            setCurrentContent(activeScene.content);
+        }
+    }, [activeScene?.id]); // Only when ID changes (scene switch), or initial load. Avoiding loop on content update.
 
     // 1. On Load: detailed logic to restore session state from DB if available
     useEffect(() => {
@@ -137,6 +153,10 @@ export default function WritePage() {
 
     const handleUpdate = useCallback((content: any) => {
         if (!activeSceneId) return;
+
+        // Immediate local update for AI Workspace sync
+        setCurrentContent(content);
+
         setStatus("saving");
 
         if (saveTimeoutRef.current) {
@@ -146,9 +166,10 @@ export default function WritePage() {
         saveTimeoutRef.current = setTimeout(async () => {
             try {
                 // Caluclate word count (naive)
-                const text = JSON.stringify(content);
-                const wordCount = text.length / 5; // Very rough approx
+                const text = extractTextFromContent(content);
+                const wordCount = text.split(/\s+/).filter(word => word.length > 0).length;
 
+                console.log(`[WritePage] Received content update. Size: ${JSON.stringify(content).length}, Words: ${wordCount}`);
                 console.warn('[Editor] Saving scene content to DB...', activeSceneId);
                 await db.scenes.update(activeSceneId, {
                     content,
@@ -180,10 +201,18 @@ export default function WritePage() {
     const prevSceneId = activeSceneIndex > 0 ? scenes?.[activeSceneIndex - 1]?.id : null;
     const nextSceneId = activeSceneIndex !== -1 && activeSceneIndex < (scenes?.length ?? 0) - 1 ? scenes?.[activeSceneIndex + 1]?.id : null;
 
+
+    // Live query for agent state associated with this scene
+    // This connects the AI "Brain" to the current scene
+    const agentState = useLiveQuery(
+        async () => activeSceneId ? await db.agent_state.where({ sceneId: activeSceneId }).first() : null,
+        [activeSceneId]
+    );
+
     return (
-        <div className="flex flex-col h-full bg-background relative">
+        <div className="flex flex-col h-full bg-background relative overflow-hidden">
             {/* Simple Scene Toolbar */}
-            <div className="p-2 flex items-center justify-between transition-opacity hover:opacity-100 opacity-50 focus-within:opacity-100 border-b">
+            <div className="p-2 flex items-center justify-between transition-opacity hover:opacity-100 opacity-50 focus-within:opacity-100 border-b shrink-0">
                 <div className="flex items-center gap-2">
                     <Button
                         size="sm"
@@ -225,6 +254,17 @@ export default function WritePage() {
                 <div className="flex items-center gap-2">
                     <Button
                         size="sm"
+                        variant={isAIWorkspaceOpen ? "secondary" : "ghost"}
+                        onClick={() => setIsAIWorkspaceOpen(!isAIWorkspaceOpen)}
+                        className="h-8 px-2 text-xs"
+                    >
+                        <Sparkles className="h-3 w-3 mr-1 text-blue-500" />
+                        <span className="hidden sm:inline">AI Workspace</span>
+                    </Button>
+                    <div className="w-[1px] h-4 bg-border mx-1" />
+
+                    <Button
+                        size="sm"
                         variant="ghost"
                         onClick={handleAnalyze}
                         disabled={isAnalyzing}
@@ -242,15 +282,47 @@ export default function WritePage() {
                 </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4">
-                {/* Key prop ensures editor remounts when scene changes */}
-                {activeScene && (
-                    <NovelEditor
-                        ref={editorRef}
-                        key={activeScene.id}
-                        initialContent={activeScene.content}
-                        onUpdate={handleUpdate}
-                        sceneId={activeScene.id}
+            <div className="flex-1 flex overflow-hidden">
+                <div className="flex-1 overflow-y-auto p-4">
+                    {/* Key prop ensures editor remounts when scene changes */}
+                    {activeScene && (
+                        <NovelEditor
+                            ref={editorRef}
+                            key={activeScene.id}
+                            initialContent={activeScene.content}
+                            content={currentContent}
+                            remoteUpdateTrigger={remoteTrigger}
+                            onUpdate={handleUpdate}
+                            sceneId={activeScene.id}
+                        />
+                    )}
+                </div>
+
+                {/* AI Workspace Panel */}
+                {isAIWorkspaceOpen && (
+                    <AIWorkspace
+                        className="w-1/3 min-w-[300px] border-l shadow-xl z-10"
+                        onClose={() => setIsAIWorkspaceOpen(false)}
+                        currentManuscript={extractTextFromContent(currentContent)}
+                        onUpdateManuscript={(text) => {
+                            // Convert plain text back to ProseMirror JSON format
+                            const paragraphs = text.split('\n\n').filter(p => p.trim());
+                            const content = {
+                                type: 'doc',
+                                content: paragraphs.map(para => ({
+                                    type: 'paragraph',
+                                    content: [{
+                                        type: 'text',
+                                        text: para
+                                    }]
+                                }))
+                            };
+                            handleUpdate(content);
+                            setRemoteTrigger(prev => prev + 1);
+                        }}
+                        sceneId={activeSceneId || ""}
+                        agentState={agentState}
+                        novelId={novelId}
                     />
                 )}
             </div>

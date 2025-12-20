@@ -39,19 +39,10 @@ export default function CodexSidebar({ onSelect }: { onSelect: (entry: CodexEntr
 
         // Get Key
         const provider = localStorage.getItem('novel-architect-provider') || 'openai';
-        const encrypted = localStorage.getItem('novel-architect-key-openrouter'); // Always OpenRouter for now
-        const pin = localStorage.getItem('novel-architect-pin-hash');
+        const apiKey = localStorage.getItem('novel-architect-key-openrouter'); // Always OpenRouter for now
 
-        if (!encrypted || !pin) {
-            alert("Please configure OpenRouter API Key in Settings first.");
-            setGeneratingProgress(null);
-            return;
-        }
-
-        const { KeyChain } = await import("@/lib/ai/keychain");
-        const apiKey = await KeyChain.decrypt(encrypted, pin);
         if (!apiKey) {
-            alert("Could not decrypt API Key.");
+            alert("Please configure OpenRouter API Key in Settings first.");
             setGeneratingProgress(null);
             return;
         }

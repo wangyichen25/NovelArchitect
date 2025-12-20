@@ -20,6 +20,8 @@ import { useTaskQueue } from '@/components/providers/TaskQueueProvider';
 
 interface NovelEditorProps {
     initialContent?: any;
+    content?: any;
+    remoteUpdateTrigger?: number;
     onUpdate?: (content: any) => void;
     sceneId: string;
 }
@@ -39,7 +41,7 @@ const getColorForCategory = (cat: string) => {
     }
 };
 
-const NovelEditor = forwardRef<NovelEditorHandle, NovelEditorProps>(({ initialContent, onUpdate, sceneId }, ref) => {
+const NovelEditor = forwardRef<NovelEditorHandle, NovelEditorProps>(({ initialContent, content, remoteUpdateTrigger, onUpdate, sceneId }, ref) => {
     const params = useParams();
     const novelId = params.id as string;
     const [isScanning, setIsScanning] = useState(false);
@@ -214,6 +216,18 @@ const NovelEditor = forwardRef<NovelEditorHandle, NovelEditorProps>(({ initialCo
         },
         immediatelyRender: false,
     });
+
+    // Sync content from external source (Agent) when trigger changes
+    useEffect(() => {
+        if (!editor || !content) return;
+
+        // This effect only runs when remoteUpdateTrigger changes (which implies an Agent update)
+        // We trust 'content' is the new source of truth.
+        const currentContent = editor.getJSON();
+        if (JSON.stringify(currentContent) !== JSON.stringify(content)) {
+            editor.commands.setContent(content);
+        }
+    }, [remoteUpdateTrigger, editor, content]);
 
     // Better to use useEffect for restoration after editor instance is available
     useEffect(() => {

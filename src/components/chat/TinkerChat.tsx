@@ -13,7 +13,6 @@ import SettingsDialog from '@/components/settings-dialog';
 import { Orchestrator } from '@/lib/ai/orchestrator';
 import { useParams } from 'next/navigation';
 import { db } from '@/lib/db';
-import { KeyChain } from '@/lib/ai/keychain';
 
 export default function TinkerChat() {
     const params = useParams();
@@ -31,11 +30,8 @@ export default function TinkerChat() {
             // Try to fetch key
             const provider = localStorage.getItem('novel-architect-provider') || 'openai';
             if (provider !== 'ollama') {
-                const encKey = localStorage.getItem(`novel-architect-key-${provider}`);
-                // In a real app we'd prompt for PIN if not in memory. 
-                // For now assuming we can't easily decrypt without user interaction every time?
-                // Let's assume the PIN is stored in session storage or we prompt.
-                // For this prototype, I'll rely on the user having just entered it in Settings if it's missing.
+                const key = localStorage.getItem(`novel-architect-key-${provider}`);
+                if (key) setApiKey(key);
             }
         };
         init();
