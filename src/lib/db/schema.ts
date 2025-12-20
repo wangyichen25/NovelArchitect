@@ -99,4 +99,8 @@ export interface AgentState {
     history?: any[]; // JSON - LogEntry[]
     actionHistory?: any[]; // JSON - HistoryEntry[]
     lastModified?: number;
+
+    // Citation Workflow State
+    citationTargets?: any[]; // JSON - CitationTarget[]
+    existingCitations?: any[]; // JSON - string[] or CitationEntry[]
 }

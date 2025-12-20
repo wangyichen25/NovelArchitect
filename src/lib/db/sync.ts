@@ -316,6 +316,8 @@ async function _syncAgentStateImmediate(state: AgentState): Promise<void> {
         pass_index: state.passIndex,
         history: state.history,
         action_history: state.actionHistory,
+        citation_targets: state.citationTargets,
+        existing_citations: state.existingCitations,
         last_modified: state.lastModified
     });
 

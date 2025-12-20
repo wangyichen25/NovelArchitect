@@ -397,9 +397,10 @@ export default function ProjectDashboard() {
                                 <Button
                                     variant="ghost"
                                     onClick={handleLogout}
-                                    className="h-9 w-9 text-muted-foreground hover:text-destructive transition-colors"
+                                    className="h-9 px-4 text-muted-foreground hover:text-destructive transition-colors"
                                 >
-                                    <LogOut className="h-4 w-4" />
+                                    <LogOut className="h-4 w-4 sm:mr-2" />
+                                    <span className="hidden sm:inline">Log Out</span>
                                 </Button>
                             </>
                         ) : (

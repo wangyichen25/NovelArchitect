@@ -59,6 +59,26 @@ const tableMappings: Record<string, Record<string, string>> = {
         name: 'name',
         prompt: 'prompt',
         last_used: 'lastUsed'
+    },
+    agent_state: {
+        id: 'id',
+        user_id: 'userId',
+        novel_id: 'novelId',
+        scene_id: 'sceneId',
+        instructions: 'instructions',
+        max_passes: 'maxPasses',
+        min_score: 'minScore',
+        max_hunks: 'maxHunks',
+        max_targets: 'maxTargets',
+        section_plan: 'sectionPlan',
+        sections_drafted: 'sectionsDrafted',
+        format_guidance: 'formatGuidance',
+        pass_index: 'passIndex',
+        history: 'history',
+        action_history: 'actionHistory',
+        citation_targets: 'citationTargets',
+        existing_citations: 'existingCitations',
+        last_modified: 'lastModified'
     }
 };
 
@@ -142,8 +162,10 @@ export const subscribeToRealtime = (supabase: any, userId: string) => {
         if (status === 'SUBSCRIBED') {
             console.log('[Realtime] ✅ Connected and subscribed!');
         } else if (status === 'CHANNEL_ERROR') {
-            const errorMsg = new Error('Realtime channel error. Check connection and permissions.');
-            console.error(errorMsg, err);
+            console.warn('[Realtime] Channel error. Attempting to reconnect...', err);
+            // Verify permissions or simple transient network issue
+            // const errorMsg = new Error('Realtime channel error. Check connection and permissions.');
+            // console.error(errorMsg, err);
         } else if (status === 'TIMED_OUT') {
             console.warn('Realtime connection timed out. Retrying...');
         } else {

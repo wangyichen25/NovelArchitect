@@ -151,8 +151,8 @@ export function AIWorkspace({ className, onClose, currentManuscript = "", onUpda
             current_manuscript: currentManuscript || "(empty)",
         },
         reference_state: {
-            existing_citations: [], // TODO: Connect to real citation parser
-            citation_targets: [] // TODO: Connect to Citation Orchestrator output
+            existing_citations: agentState?.existingCitations || [],
+            citation_targets: agentState?.citationTargets || []
         }
     };
 
@@ -229,8 +229,53 @@ export function AIWorkspace({ className, onClose, currentManuscript = "", onUpda
         }
     };
 
-    const handleScanReferences = () => {
-        console.log("Scanning references...");
+    const handleScanReferences = async () => {
+        setIsRunning(true);
+        setActiveTab("logs");
+
+        let currentLogs = [...localHistory];
+
+        try {
+            const { runCitationWorkflow } = await import('@/lib/agents/citation_runtime');
+
+            const getCurrentManuscript = async () => currentManuscript || '';
+
+            const updateManuscript = async (text: string) => {
+                if (onUpdateManuscript) onUpdateManuscript(text);
+            };
+
+            const onLog = (log: LogEntry) => {
+                isDirty.current = true;
+                currentLogs.push(log);
+                setLocalHistory(prev => [...prev, log]);
+            };
+
+            const result = await runCitationWorkflow(
+                novelId,
+                sceneId,
+                maxTargets,
+                getCurrentManuscript,
+                updateManuscript,
+                onLog
+            );
+
+            console.log("Citation scan complete.", result);
+
+        } catch (error) {
+            console.error('[AIWorkspace] Citation error:', error);
+            const errorLog: LogEntry = {
+                id: uuidv4(),
+                timestamp: Date.now(),
+                agent: 'System',
+                type: 'error',
+                content: `Error: ${error instanceof Error ? error.message : String(error)}`
+            };
+            currentLogs.push(errorLog);
+            setLocalHistory(prev => [...prev, errorLog]);
+        } finally {
+            await saveAgentState(currentLogs);
+            setIsRunning(false);
+        }
     };
 
     return (
@@ -383,12 +428,12 @@ export function AIWorkspace({ className, onClose, currentManuscript = "", onUpda
                             <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Citation Data</label>
                             <div className="grid grid-cols-2 gap-2">
                                 <VariableInspector
-                                    variables={{ existing_citations: [] }}
+                                    variables={{ existing_citations: agentState?.existingCitations || [] }}
                                     title="Existing Citations"
                                     trigger={<Button variant="outline" size="sm" className="w-full text-xs h-8">Citations</Button>}
                                 />
                                 <VariableInspector
-                                    variables={{ citation_targets: [] }}
+                                    variables={{ citation_targets: agentState?.citationTargets || [] }}
                                     title="Citation Targets"
                                     trigger={<Button variant="outline" size="sm" className="w-full text-xs h-8">Targets</Button>}
                                 />

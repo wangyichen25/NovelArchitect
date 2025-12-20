@@ -136,7 +136,7 @@ export interface CitationGeneratorOutput {
 export interface LogEntry {
     id: string;
     timestamp: number;
-    agent: 'Manager' | 'Formatter' | 'Planner' | 'Writer' | 'Critic' | 'Reviser' | 'System';
+    agent: 'Manager' | 'Formatter' | 'Planner' | 'Writer' | 'Critic' | 'Reviser' | 'CitationOrchestrator' | 'CitationGenerator' | 'System';
     type: 'input' | 'output' | 'error' | 'info';
     content: string;
     metadata?: any;
