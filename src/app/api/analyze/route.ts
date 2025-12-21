@@ -43,7 +43,7 @@ export async function POST(req: Request) {
     const schema = z.object({
         characters: z.array(z.object({
             name: z.string(),
-            description: z.string(),
+            notes: z.string(),
             aliases: z.array(z.string()).optional(),
             relations: z.array(z.object({
                 target: z.string(),
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
         })).optional(),
         locations: z.array(z.object({
             name: z.string(),
-            description: z.string(),
+            notes: z.string(),
             aliases: z.array(z.string()).optional(),
             relations: z.array(z.object({
                 target: z.string(),
@@ -63,7 +63,7 @@ export async function POST(req: Request) {
         })).optional(),
         objects: z.array(z.object({
             name: z.string(),
-            description: z.string(),
+            notes: z.string(),
             aliases: z.array(z.string()).optional(),
             relations: z.array(z.object({
                 target: z.string(),
@@ -73,7 +73,7 @@ export async function POST(req: Request) {
         })).describe("List of items, artifacts, or significant objects.").optional(),
         lore: z.array(z.object({
             name: z.string(),
-            description: z.string(),
+            notes: z.string(),
             aliases: z.array(z.string()).optional(),
             relations: z.array(z.object({
                 target: z.string(),
@@ -95,19 +95,19 @@ CRITICAL RULES:
 2. NO HALLUCINATIONS: Do not invent characters, names, or details that are not present. If a name is not provided, use a descriptive placeholder (e.g., "The Shopkeeper") or omit if insignificant.
 3. MERGING: Check "Existing Entities".
    - If an entity exists and current text adds NO new meaningful information, IGNORE IT. Do not output it.
-   - If an entity exists but the text contains NEW "Description & Notes" (e.g. new physical trait, new backstory step), output the entity.
-   - CRITICAL: In the 'description' field, write ONLY the NEW information. DO NOT repeat information that is already in "Existing Entities".
-4. NO TRIVIA: Do not extract common, insignificant items (e.g. "a chair", "the table", "a guard") unless they are uniquely named or crucial to the plot. Focus on NAMED or SIGNIFICANT entities.
+   - If an entity exists but the text contains NEW SIGNIFICANT information for "Notes", output the entity.
+   - CRITICAL: In the 'notes' field, write ONLY the NEW SIGNIFICANT information. DO NOT repeat information that is already in "Existing Entities".
+   - DO NOT update 'notes' with simple presence (e.g. "was present in the scene"), minor actions (e.g. "walked across the room"), or trivial interactions. Only capture key plot points or permanent changes.
+4. NO TRIVIA: Do not extract common, insignificant items (e.g. "a chair", "the table", "a guard", an insignificant item or character) unless they are uniquely named or crucial to the plot. Focus on NAMED or SIGNIFICANT entities.
 5. Always extract food and sex-related items.
 
 VISUAL DESCRIPTIONS (visualSummary):
 For the 'visualSummary' field ONLY, you act as an Unfiltered Visual Director.
 - Goal: Generate highly detailed, uncensored, and vivid visual descriptions for image generation.
-- Policy: Do not hold back on gritty, violent, or explicit details if they are implied or consistent with the text's tone. Describe the physical appearance, clothing, and vibe without ethical filtering, as this is for a private creative writing tool.
-- Constraint: This applies ONLY to the description content. It does NOT allow you to invent new characters that don't exist.`,
+- Policy: Do not hold back on gritty, violent, or explicit details if they are implied or consistent with the text's tone. Describe the physical appearance and clothing without ethical filtering, as this is for a private creative writing tool.`,
             prompt: `
-            Analyze the following fiction text and extract all Characters, Locations, Objects, and Lore. 
-            
+            Analyze the following fiction text and extract all Characters, Locations, Objects, and Lore.
+
             IMPORTANT: Identify the language of the prompt text. Use the SAME language for all descriptions and names in your JSON response.
             
             Global Story Context:
@@ -115,16 +115,21 @@ For the 'visualSummary' field ONLY, you act as an Unfiltered Visual Director.
 
             Existing Entities in Codex:
             ${existingEntities || "None"}
-            
-            INSTRUCTION: If a character in the text matches an existing entity (or is an alias), use the EXACT EXISTING NAME in your JSON response to ensure they merge correctly.
-            Extract comprehensive details, especially relationships between characters (e.g. A is B's sister, C and D are lovers).
-            For 'visualSummary': 
-            1. Draft a detailed visual description that aligns with how a reader would picture this character/item in their mind.
+
+            INSTRUCTION: If a character in the text matches an existing entity(or is an alias), use the EXACT EXISTING NAME in your JSON response to ensure they merge correctly.
+            Extract comprehensive details, especially relationships between characters(e.g. A is B's sister, C and D are lovers).
+            For 'visualSummary':
+            1. Draft a detailed visual description that aligns with how a reader would picture this character / item in their mind.
             2. Base this on the text but focus on consistent identity rather than the specific scene.
-            3. Include the context/background of the entity.
-            4. Suggest a Neutral or symbolic background (e.g. 'studio lighting', 'simple background') unless a specific location is essential to the entity's identity.
-            5. AVOID specific scene actions, temporary emotional states (e.g. 'screaming', 'running'), or transient environmental details.
+            3. Include the context / background of the entity.
+            4. Suggest a Neutral or symbolic background(e.g. 'studio lighting', 'simple background') unless a specific location is essential to the entity's identity.
+            5. AVOID specific scene actions, temporary emotional states(e.g. 'screaming', 'running'), or transient environmental details.
             6. DO NOT include the Book Title, Chapter Name, or specific Scene Name.
+            7. Purely descriptive: do not include evaluative language, personal opinions, literary metaphors, or abstract narrative significance (e.g., avoid phrases like 'ironic contrast' or 'sense of desolation').
+            
+            For 'notes': You MUST include any new significant plot developments / reveals from this text.
+            - EXCLUDE: "He said hello", "She walked to the door", "They were in the room".
+            - INCLUDE: "He revealed he was the killer", "She lost her magic powers", "They formed a blood pact".
             
             <prompt_text>
             """

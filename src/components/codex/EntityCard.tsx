@@ -11,6 +11,7 @@ import { Trash2, Save, Copy, Loader2, Image as ImageIcon, X, Merge } from "lucid
 import { AnalysisService } from "@/lib/services/analysis";
 import MergeCodexDialog from "./MergeCodexDialog";
 import { useTaskQueue } from "@/components/providers/TaskQueueProvider";
+import { Scene, Chapter, Act } from "@/lib/db/schema";
 
 export default function EntityCard({ entry, onSave, onDelete }: { entry: CodexEntry, onSave: () => void, onDelete: () => void }) {
     const [params] = useState<{ id: string }>(window.location.pathname.split("/")[2] ? { id: window.location.pathname.split("/")[2] } : { id: '' });
@@ -26,6 +27,11 @@ export default function EntityCard({ entry, onSave, onDelete }: { entry: CodexEn
     const [showMergeDialog, setShowMergeDialog] = useState(false);
     const [history, setHistory] = useState<string[]>([]); // Deprecated generally, but keeping for session undo if needed, OR we just use gallery.
     // Let's use gallery from data directly.
+
+    // Timeline logic
+    const [scenes, setScenes] = useState<{ id: string, title: string, order: number, label: string }[]>([]);
+    const [newEventText, setNewEventText] = useState("");
+    const [selectedSceneId, setSelectedSceneId] = useState("");
 
     // Model Selection
     const [selectedModel, setSelectedModel] = useState<string>("google/gemini-3-pro-image-preview");
@@ -45,6 +51,7 @@ export default function EntityCard({ entry, onSave, onDelete }: { entry: CodexEn
     useEffect(() => {
         setData(entry);
         loadStyles();
+        loadScenes();
         // Load preferred model? For now default.
         const storedModel = localStorage.getItem('novel-architect-preferred-model');
         if (storedModel) setSelectedModel(storedModel);
@@ -59,6 +66,54 @@ export default function EntityCard({ entry, onSave, onDelete }: { entry: CodexEn
             const merged = Array.from(new Set([...defaults, ...novel.settings.imageStyles]));
             setStylesList(merged);
         }
+    };
+
+    const loadScenes = async () => {
+        if (!entry.novelId) return;
+        const [acts, chapters, scenes] = await Promise.all([
+            db.acts.where({ novelId: entry.novelId }).toArray(),
+            db.chapters.where({ novelId: entry.novelId }).toArray(), // No direct index for novelId currently on chapters/scenes? 
+            // Actually schema says: chapters: 'id, actId, order' -> No novelId index?
+            // Wait, schema for chapters is 'id, actId, order'. No novelId index.
+            // But we can filter manually or rely on Act relationship.
+            // Let's just fetch all and filter JS side if dataset is small, or use actIds.
+            // The schema definition for chapters is `id, actId, order`.
+            // The prompt says `chapters` has `novelId`? No, schema says `actId`.
+            // Wait, `Scene` has `novelId`. `Act` has `novelId`. `Chapter` does NOT?
+            // Let's check schema again. `Chapter` interface has `actId`. No novelId.
+            // But Scene has `novelId`.
+            // So for Scenes we can use `where({ novelId })`.
+            // For Acts we can use `where({ novelId })`.
+            // For Chapters, we need to get chapters for those acts.
+            db.scenes.where({ novelId: entry.novelId }).toArray()
+        ]);
+
+        // We probably need chapters to label scenes nicely.
+        // Let's just fetch all chapters since we can't easily filter by actId list in one go without 'anyOf'.
+        const allChapters = await db.chapters.toArray(); // Inefficient but fine for client-side small DB
+        const relevantChapters = allChapters.filter(c => acts.some(a => a.id === c.actId));
+
+        // Sort: Act Order -> Chapter Order -> Scene Order
+        acts.sort((a, b) => a.order - b.order);
+
+        const sortedScenes: { id: string, title: string, order: number, label: string }[] = [];
+        let globalOrder = 0;
+
+        acts.forEach(act => {
+            const actChapters = relevantChapters.filter(c => c.actId === act.id).sort((a, b) => a.order - b.order);
+            actChapters.forEach(chap => {
+                const chapScenes = scenes.filter(s => s.chapterId === chap.id).sort((a, b) => a.order - b.order);
+                chapScenes.forEach(scene => {
+                    sortedScenes.push({
+                        id: scene.id,
+                        title: scene.title,
+                        order: globalOrder++,
+                        label: `${scene.title} (Ch: ${chap.title})`
+                    });
+                });
+            });
+        });
+        setScenes(sortedScenes);
     };
 
     // Add new style to DB settings
@@ -376,13 +431,26 @@ export default function EntityCard({ entry, onSave, onDelete }: { entry: CodexEn
             }
 
             <div>
-                <label className="text-sm font-medium text-muted-foreground mb-2 block">Description & Notes</label>
+                <label className="text-sm font-medium text-muted-foreground mb-2 block">Notes</label>
                 <textarea
                     className="flex min-h-[300px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                    value={data.description}
-                    onChange={(e) => setData({ ...data, description: e.target.value })}
-                    placeholder="Detailed description for the AI context..."
+                    value={data.notes}
+                    onChange={(e) => setData({ ...data, notes: e.target.value })}
+                    placeholder="Chronological notes log... Use [[Scene: Title]] to mark scene-specific reveals."
                 />
+            </div>
+
+            {/* Timeline Events Section REMOVED - using logical Notes Log now */}
+
+            <div className="bg-muted/30 p-4 rounded-md text-xs text-muted-foreground">
+                <p className="font-semibold mb-1">💡 Tips for Notes Log:</p>
+                <p className="mb-2">
+                    Use the format <code>[[Scene: Scene Title]]</code> to mark when specific information is revealed.
+                    The Editor will automatically hide notes that appear under future scene headers.
+                </p>
+                <p>
+                    Everything before the first header is considered "Backstory" and is always visible.
+                </p>
             </div>
 
             <div>

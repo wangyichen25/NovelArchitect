@@ -29,6 +29,7 @@ export interface Act {
 
 export interface Chapter {
     id: string;
+    novelId: string;
     actId: string;
     title: string;
     order: number;
@@ -62,7 +63,7 @@ export interface CodexEntry {
     category: 'character' | 'location' | 'object' | 'lore';
     name: string;
     aliases: string[];
-    description: string;
+    notes: string;
     visualSummary?: string; // For image generation prompts (e.g. Stable Diffusion)
     image?: string; // URL or Base64 of generated image
     gallery?: string[]; // History of generated images

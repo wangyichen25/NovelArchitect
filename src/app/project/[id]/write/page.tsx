@@ -10,7 +10,8 @@ import { useProjectStore } from "@/hooks/useProject";
 import { Scene, Act, Chapter } from "@/lib/db/schema";
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from "@/components/ui/button";
-import { Plus, Save, ChevronLeft, ChevronRight, Sparkles, Loader2 } from "lucide-react";
+import { Plus, Save, ChevronLeft, ChevronRight, Sparkles, Loader2, Settings } from "lucide-react";
+import { SceneSettingsDialog } from "@/components/writer/SceneSettingsDialog";
 
 
 import { AIWorkspace } from "@/components/writer/AIWorkspace";
@@ -26,6 +27,7 @@ export default function WritePage() {
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [isAIWorkspaceOpen, setIsAIWorkspaceOpen] = useState(false);
     const [remoteTrigger, setRemoteTrigger] = useState(0);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
     // Local state for real-time text sync with AI Workspace
     const [currentContent, setCurrentContent] = useState<any>(null);
@@ -124,6 +126,7 @@ export default function WritePage() {
             await db.chapters.add({
                 id: chapterId,
                 actId,
+                novelId,
                 title: 'Chapter 1',
                 order: 0,
                 summary: ''
@@ -201,6 +204,31 @@ export default function WritePage() {
     const prevSceneId = activeSceneIndex > 0 ? scenes?.[activeSceneIndex - 1]?.id : null;
     const nextSceneId = activeSceneIndex !== -1 && activeSceneIndex < (scenes?.length ?? 0) - 1 ? scenes?.[activeSceneIndex + 1]?.id : null;
 
+    const handleRenameScene = async (newTitle: string) => {
+        if (!activeSceneId) return;
+        await db.scenes.update(activeSceneId, {
+            title: newTitle,
+            lastModified: Date.now()
+        });
+    };
+
+    const handleDeleteScene = async () => {
+        if (!activeSceneId) return;
+
+        // Determine next scene to go to
+        const targetSceneId = nextSceneId || prevSceneId || null;
+
+        await db.scenes.delete(activeSceneId);
+
+        if (targetSceneId) {
+            setActiveScene(targetSceneId);
+        } else {
+            // Use fallback logic which will trigger in useEffect
+            setActiveScene("");
+        }
+        setIsSettingsOpen(false);
+    };
+
 
     // Live query for agent state associated with this scene
     // This connects the AI "Brain" to the current scene
@@ -232,6 +260,16 @@ export default function WritePage() {
                     >
                         {scenes?.map(s => <option key={s.id} value={s.id} className="bg-background text-foreground">{s.title}</option>)}
                     </select>
+
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setIsSettingsOpen(true)}
+                        className="h-8 w-8 p-0"
+                        title="Scene Settings"
+                    >
+                        <Settings className="h-4 w-4" />
+                    </Button>
 
                     <Button
                         size="sm"
@@ -326,6 +364,16 @@ export default function WritePage() {
                     />
                 )}
             </div>
+
+            {activeScene && (
+                <SceneSettingsDialog
+                    open={isSettingsOpen}
+                    onOpenChange={setIsSettingsOpen}
+                    currentTitle={activeScene.title}
+                    onRename={handleRenameScene}
+                    onDelete={handleDeleteScene}
+                />
+            )}
         </div>
     );
 }

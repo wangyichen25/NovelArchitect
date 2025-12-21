@@ -96,7 +96,8 @@ export class ExportService {
             await db.chapters.add({
                 ...chap,
                 id: getNewId(chap.id),
-                actId: getNewId(chap.actId)
+                actId: getNewId(chap.actId),
+                novelId: newNovelId
             });
         }
 
@@ -106,6 +107,7 @@ export class ExportService {
                 ...scene,
                 id: getNewId(scene.id),
                 chapterId: getNewId(scene.chapterId),
+                novelId: newNovelId,
                 // Metadata references to Codex? 
                 // That's tricky. If we re-ID codex, we must update metadata locations/povs.
             });

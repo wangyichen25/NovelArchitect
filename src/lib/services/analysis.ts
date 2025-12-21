@@ -40,7 +40,8 @@ export class AnalysisService {
         text: string,
         settings: AnalysisSettings,
         onProgress?: (msg: string) => void,
-        signal?: AbortSignal
+        signal?: AbortSignal,
+        sceneId?: string
     ): Promise<{ new: number; updated: number }> {
 
         if (text.length < 10) throw new Error("Text too short for analysis");
@@ -69,6 +70,13 @@ export class AnalysisService {
             const key = await this.getApiKey(novelId, settings.provider);
             if (!key) throw new Error("API Key not found. Please set your API Key in Settings.");
             apiKey = key;
+        }
+
+        // Fetch Scene Title if sceneId exists
+        let currentSceneTitle = "Unknown Scene";
+        if (sceneId) {
+            const scene = await db.scenes.get(sceneId);
+            if (scene) currentSceneTitle = scene.title;
         }
 
         onProgress?.("Calling AI Analysis API...");
@@ -103,7 +111,7 @@ export class AnalysisService {
         const updatedEntries: CodexEntry[] = [];
 
         const normalize = (s: string) => s.toLowerCase().trim();
-        const simplify = (s: string) => s.toLowerCase().replace(/[^\w\s]|_/g, "").replace(/\s+/g, " ").trim();
+        const simplify = (s: string) => s.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, "").replace(/\s+/g, " ").trim();
 
         // Map Name AND Aliases to Entity
         const existingMap = new Map<string, CodexEntry>();
@@ -132,20 +140,18 @@ export class AnalysisService {
                     }
                 }
 
-                // Append/Update Description
-                if (item.description && item.description.length > 5) {
-                    const simpleNew = simplify(item.description);
-                    const simpleExisting = simplify(existing.description || "");
+                // Append/Update Notes (Log System)
+                if (item.notes && item.notes.length > 5) {
+                    const simpleNew = simplify(item.notes);
+                    const simpleExisting = simplify(existing.notes || "");
 
-                    if (simpleNew.includes(simpleExisting) && simpleNew.length > simpleExisting.length) {
-                        existing.description = item.description;
-                        changed = true;
-                    }
-                    else if (simpleExisting.includes(simpleNew)) {
-                        // no-op
-                    }
-                    else {
-                        existing.description = (existing.description ? existing.description + "\n\n" : "") + item.description;
+                    if (simpleExisting.includes(simpleNew)) {
+                        // already exists, skip
+                    } else {
+                        // Append as new entry in log with Scene Header
+                        // Only add header if we actually have notes
+                        const logEntry = `\n\n[[Scene: ${currentSceneTitle}]]\n${item.notes}`;
+                        existing.notes = (existing.notes || "") + logEntry;
                         changed = true;
                     }
                 }
@@ -166,7 +172,7 @@ export class AnalysisService {
                         // Wait, the original code in NovelEditor.tsx just pushed `r` to `existing.relations`. This might be a bug in original code if types mismatch!
                         // In NovelEditor.tsx: line 345: existing.relations = [...].
                         // Schema defines `relations: CodexRelation[]`.
-                        // Analyze API returns `relations: { target: string, relationship: string }[]`.
+                        // Analyze API returns `relations: `relations: { target: string, relationship: string }[]`.
                         // So the original code was likely putting invalid objects into Dexie. Dexie allows it (NoSQL).
                         // I will maintain the same behavior for now to not break anything, but typescript might complain if I am strict.
                         // casting as any to encompass the "buggy" but working behavior.
@@ -176,6 +182,24 @@ export class AnalysisService {
                             changed = true;
                         }
                     }
+                }
+
+                // Merge Events (Scene-Aware)
+                if (item.events && item.events.length > 0 && sceneId) {
+                    const currentEvents = new Set((existing.relations || []).filter(r => r.type === 'event' && r.targetId === sceneId).map(r => r.description));
+                    let eventsChanged = false;
+
+                    for (const eventDesc of item.events) {
+                        if (!currentEvents.has(eventDesc)) {
+                            existing.relations.push({
+                                targetId: sceneId,
+                                type: 'event',
+                                description: eventDesc
+                            });
+                            eventsChanged = true;
+                        }
+                    }
+                    if (eventsChanged) changed = true;
                 }
 
                 if (item.visualSummary && !existing.visualSummary) {
@@ -195,11 +219,23 @@ export class AnalysisService {
                     novelId,
                     category: cat,
                     name: item.name,
-                    description: item.description || '',
+                    notes: `[[Scene: ${currentSceneTitle}]]\n${item.notes || ''}`,
                     aliases: item.aliases || [],
                     relations: (item.relations || []) as any, // dynamic schema mismatch
                     visualSummary: item.visualSummary || ""
                 };
+
+                // Add events for new entry
+                if (item.events && item.events.length > 0 && sceneId) {
+                    item.events.forEach((desc: string) => {
+                        newEntry.relations.push({
+                            targetId: sceneId,
+                            type: 'event',
+                            description: desc
+                        });
+                    });
+                }
+
                 newEntries.push(newEntry);
                 existingMap.set(normName, newEntry);
             }

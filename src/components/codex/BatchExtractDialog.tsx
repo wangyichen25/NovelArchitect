@@ -237,7 +237,7 @@ export default function BatchExtractDialog({ open, onOpenChange }: { open: boole
                         'analysis',
                         `Batch: ${scene.title}`,
                         async (signal) => {
-                            return await AnalysisService.analyzeText(novelId, text, analysisSettings, undefined, signal);
+                            return await AnalysisService.analyzeText(novelId, text, analysisSettings, undefined, signal, scene.id);
                         },
                         async (result) => {
                             totalNew += result.new;

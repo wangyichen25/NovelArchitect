@@ -118,7 +118,7 @@ export async function uploadNovelToCloud(novelId: string, userId: string) {
                     category: entry.category,
                     name: entry.name,
                     aliases: entry.aliases,
-                    description: entry.description,
+                    notes: entry.notes,
                     visual_summary: entry.visualSummary,
                     image: entry.image,
                     gallery: entry.gallery,
@@ -216,6 +216,7 @@ export async function downloadNovelFromCloud(novelId: string) {
         if (chapters) {
             await db.chapters.bulkPut(chapters.map(c => ({
                 id: c.id,
+                novelId: novelId,
                 actId: c.act_id,
                 title: c.title,
                 order: c.order,
@@ -245,7 +246,7 @@ export async function downloadNovelFromCloud(novelId: string) {
                 category: c.category as any,
                 name: c.name,
                 aliases: c.aliases,
-                description: c.description,
+                notes: c.notes,
                 visualSummary: c.visual_summary,
                 image: c.image,
                 gallery: c.gallery,

@@ -63,6 +63,44 @@ export class NovelArchitectDB extends Dexie {
             agent_state: 'id, novelId, sceneId'
         });
 
+        this.version(7).stores({
+            chapters: 'id, novelId, actId, order'
+        }).upgrade(async tx => {
+            // We need to fetch acts to map chapter -> act -> novel.
+            // However, inside upgrade(), we should be careful about using tx.table() which refers to the version being upgraded to.
+            // We can fetch acts first.
+            const acts = await tx.table('acts').toArray();
+            const actsMap = new Map(acts.map(a => [a.id, a.novelId]));
+
+            return tx.table('chapters').toCollection().modify(c => {
+                if (!c.novelId && actsMap.has(c.actId)) {
+                    c.novelId = actsMap.get(c.actId);
+                }
+            });
+        });
+
+        this.version(6).upgrade(tx => {
+            return tx.table('codex').toCollection().modify(curr => {
+                // Migrate description to notes if description exists and notes does not
+                if (curr.description && !curr.notes) {
+                    curr.notes = curr.description;
+                    delete curr.description;
+                }
+            });
+        });
+
+        this.version(8).upgrade(tx => {
+            return tx.table('codex').toCollection().modify(curr => {
+                // Cleanup "Unknown Scene" artifacts
+                if (curr.notes) {
+                    const trimmed = curr.notes.trim();
+                    if (trimmed === '[[Scene: Unknown Scene]]' || trimmed === '[[Scene: Unknown Scene]]\n' || trimmed.match(/^\[\[Scene: Unknown Scene\]\]\s*$/)) {
+                        curr.notes = '';
+                    }
+                }
+            });
+        });
+
         // --- Auto-Sync Hooks ---
 
         // Use this.table() to ensure we attach to the table even if property proxies aren't ready

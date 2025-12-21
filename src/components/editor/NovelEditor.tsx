@@ -52,6 +52,7 @@ const NovelEditor = forwardRef<NovelEditorHandle, NovelEditorProps>(({ initialCo
     const [bubbleMenuPos, setBubbleMenuPos] = useState({ x: 0, y: 0 });
     const [isRewriteDialogOpen, setIsRewriteDialogOpen] = useState(false);
     const handlersRef = useRef({ analyze: () => { }, scan: () => { }, aiWrite: () => { }, aiRewrite: () => { }, addCodex: () => { } });
+    const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const editor = useEditor({
         extensions: [
@@ -98,6 +99,12 @@ const NovelEditor = forwardRef<NovelEditorHandle, NovelEditorProps>(({ initialCo
                 mouseover: (view, event) => {
                     const target = event.target as HTMLElement;
                     if (target.hasAttribute('data-entity-id')) {
+                        // Clear any pending hide
+                        if (hoverTimeoutRef.current) {
+                            clearTimeout(hoverTimeoutRef.current);
+                            hoverTimeoutRef.current = null;
+                        }
+
                         const id = target.getAttribute('data-entity-id')!;
                         const description = target.getAttribute('data-entity-description') || '';
                         const category = target.getAttribute('data-entity-category') || 'object';
@@ -134,7 +141,10 @@ const NovelEditor = forwardRef<NovelEditorHandle, NovelEditorProps>(({ initialCo
 
                     const target = event.target as HTMLElement;
                     if (target.hasAttribute('data-entity-id')) {
-                        setHoveredEntity(null);
+                        // Delay hide to allow moving to tooltip
+                        hoverTimeoutRef.current = setTimeout(() => {
+                            setHoveredEntity(null);
+                        }, 300);
                     }
                     return false;
                 },
@@ -281,7 +291,7 @@ const NovelEditor = forwardRef<NovelEditorHandle, NovelEditorProps>(({ initialCo
                 return await AnalysisService.analyzeText(novelId, textToAnalyze, {
                     provider,
                     model: model || undefined,
-                }, (status) => console.log(status), signal);
+                }, (status) => console.log(status), signal, sceneId);
             },
             async (result) => {
                 if (result.new > 0 || result.updated > 0) {
@@ -396,8 +406,8 @@ const NovelEditor = forwardRef<NovelEditorHandle, NovelEditorProps>(({ initialCo
                             }
                         }
 
-                        if (e.description && !targetEntry.description.includes(e.description)) {
-                            targetEntry.description += "\n\n" + e.description;
+                        if (e.notes && !targetEntry.notes.includes(e.notes)) {
+                            targetEntry.notes += "\n\n" + e.notes;
                             changed = true;
                         }
 
@@ -415,7 +425,7 @@ const NovelEditor = forwardRef<NovelEditorHandle, NovelEditorProps>(({ initialCo
                             novelId,
                             category: e.category,
                             name: e.name,
-                            description: e.description || '',
+                            notes: e.notes || '',
                             aliases: e.aliases || [],
                             relations: e.relations || [],
                             visualSummary: e.visualSummary || ""
@@ -442,14 +452,88 @@ const NovelEditor = forwardRef<NovelEditorHandle, NovelEditorProps>(({ initialCo
         setIsScanning(true);
 
         try {
-            // 1. Fetch Codex Entries
-            const entries = await db.codex.where({ novelId }).toArray();
+            // 1. Fetch Codex Entries & Scene Context for ordering
+            const [entries, acts, chapters, scenes] = await Promise.all([
+                db.codex.where({ novelId }).toArray(),
+                db.acts.where({ novelId }).toArray(),
+                db.chapters.toArray(), // Need to filter by actId match manually if needed
+                db.scenes.where({ novelId }).toArray()
+            ]);
+
+            // Build Scene Order Map & Allowed Titles
+            const allowedTitles = new Set<string>();
+            let currentSceneOrder = -1;
+
+            // Replicate sorting logic (Act -> Chapter -> Scene)
+            const sortedActs = acts.sort((a, b) => a.order - b.order);
+            const actIds = new Set(sortedActs.map(a => a.id));
+            const validChapters = chapters.filter(c => actIds.has(c.actId));
+
+            let globalCounter = 0;
+            const orderedScenes: any[] = [];
+            sortedActs.forEach(act => {
+                const actChapters = validChapters.filter(c => c.actId === act.id).sort((a, b) => a.order - b.order);
+                actChapters.forEach(chap => {
+                    const chapScenes = scenes.filter(s => s.chapterId === chap.id).sort((a, b) => a.order - b.order);
+                    chapScenes.forEach(s => {
+                        orderedScenes.push({ ...s, globalOrder: globalCounter });
+                        if (s.id === sceneId) currentSceneOrder = globalCounter;
+                        globalCounter++;
+                    });
+                });
+            });
+
+            // Populate allowed titles
+            orderedScenes.forEach(s => {
+                if (s.globalOrder < currentSceneOrder) {
+                    allowedTitles.add(s.title.toLowerCase().trim());
+                }
+            });
+
             const keywords: string[] = [];
             // Map keyword -> List of Entity Data
             const entityMap: Record<string, { id: string; name: string; description: string; category: string; image?: string; color: string }[]> = {};
             const keywordsSet = new Set<string>();
 
             entries.forEach(e => {
+                // Progressive Disclosure Parsing (Notes Log)
+                // Format: "Backstory... \n\n[[Scene: A]]\nNote A..."
+                let dynamicDescription = "";
+                const rawNotes = e.notes || "";
+
+                // Regex to find headers: [[Scene: Title]]
+                // We split by capturing group to keep the delimiters/headers if we wanted,
+                // but cleaner is to rely on match structure.
+
+                // Strategy: Split string by headers, but we need to know WHICH header belongs to which block.
+                // split(/(\[\[Scene: .*?\]\])/g) returns [text, header, text, header, text...]
+
+                const parts = rawNotes.split(/(\[\[Scene: .*?\]\])/g);
+                let currentHeaderTitle = "PREAMBLE"; // Always allowed
+
+                parts.forEach(part => {
+                    const headerMatch = part.match(/^\[\[Scene: (.*?)\]\]$/);
+                    if (headerMatch) {
+                        currentHeaderTitle = headerMatch[1].toLowerCase().trim();
+                    } else {
+                        // Content block
+                        if (currentHeaderTitle === "PREAMBLE" || allowedTitles.has(currentHeaderTitle)) {
+                            // Clean up whitespace optionally, but usually preserving format is better.
+                            // Maybe add a separator if it's a new block?
+                            // If it's Preamble, just add.
+                            // If it's a scene note, maybe prefix with "• "? Or just append.
+                            // Let's preserve raw text but ensure separation.
+                            if (part.trim()) {
+                                if (currentHeaderTitle !== "PREAMBLE") {
+                                    dynamicDescription += `\n\n[From ${currentHeaderTitle}]:\n${part.trim()}`;
+                                } else {
+                                    dynamicDescription += part;
+                                }
+                            }
+                        }
+                    }
+                });
+
                 const addToMap = (key: string) => {
                     const normalizedKey = key.toLowerCase();
                     if (!entityMap[normalizedKey]) {
@@ -464,7 +548,7 @@ const NovelEditor = forwardRef<NovelEditorHandle, NovelEditorProps>(({ initialCo
                         entityMap[normalizedKey].push({
                             id: e.id,
                             name: e.name,
-                            description: e.description,
+                            description: dynamicDescription,
                             category: e.category,
                             image: e.image,
                             color: getColorForCategory(e.category)
@@ -745,6 +829,17 @@ const NovelEditor = forwardRef<NovelEditorHandle, NovelEditorProps>(({ initialCo
             {/* Tooltip */}
             {hoveredEntity && (
                 <div
+                    onMouseEnter={() => {
+                        if (hoverTimeoutRef.current) {
+                            clearTimeout(hoverTimeoutRef.current);
+                            hoverTimeoutRef.current = null;
+                        }
+                    }}
+                    onMouseLeave={() => {
+                        hoverTimeoutRef.current = setTimeout(() => {
+                            setHoveredEntity(null);
+                        }, 300);
+                    }}
                     className="fixed z-50 bg-popover text-popover-foreground px-3 py-2 rounded-md shadow-md border text-xs max-w-sm animate-in fade-in zoom-in-95"
                     style={{
                         left: hoveredEntity.x,
@@ -760,8 +855,8 @@ const NovelEditor = forwardRef<NovelEditorHandle, NovelEditorProps>(({ initialCo
                         {hoveredEntity.name}
                         <span className="text-[10px] uppercase opacity-50 px-1 border rounded">{hoveredEntity.category}</span>
                     </div>
-                    <div className="mt-1 opacity-90 line-clamp-[10] whitespace-pre-wrap">
-                        {hoveredEntity.description || "No description available."}
+                    <div className="mt-1 opacity-90 max-h-64 overflow-y-auto whitespace-pre-wrap">
+                        {hoveredEntity.description?.trim() || "No description available."}
                     </div>
                 </div>
             )}

@@ -189,6 +189,7 @@ export default function ProjectDashboard() {
                 await db.chapters.add({
                     id: chapterId,
                     actId: actId,
+                    novelId: id,
                     title: "Imported Chapters",
                     order: 0,
                     summary: "Content from EPUB"
@@ -313,6 +314,7 @@ export default function ProjectDashboard() {
             const chapter: Chapter = {
                 id: chapterId,
                 actId: actId,
+                novelId: id,
                 title: "Imported Chapter",
                 order: 0,
                 summary: "Imported Content"
