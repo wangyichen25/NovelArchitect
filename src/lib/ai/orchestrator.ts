@@ -33,7 +33,7 @@ export class Orchestrator {
         if (relevantEntries.length > 0) {
             prompt += `## Context (Codex)\n`;
             relevantEntries.forEach(e => {
-                prompt += `- **${e.name}** (${e.category}): ${e.description}\n`;
+                prompt += `- **${e.name}** (${e.category}): ${e.notes}\n`;
             });
             prompt += `\n`;
         }

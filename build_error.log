@@ -1,0 +1,29 @@
+
+> novel-architect-temp@0.1.0 build
+> next build --webpack
+
+   ▲ Next.js 16.0.7 (webpack)
+
+ ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+   Creating an optimized production build ...
+ ✓ (pwa) Compiling for server...
+ ✓ (pwa) Compiling for server...
+ ✓ (pwa) Compiling for client (static)...
+ ○ (pwa) Service worker: C:\Users\wangy\Dropbox\Books\NovelArchitect\public\sw.js
+ ○ (pwa)   URL: /sw.js
+ ○ (pwa)   Scope: /
+ ✓ Compiled successfully in 3.1s
+   Running TypeScript ...
+Failed to compile.
+
+./src/components/codex/CodexSidebar.tsx:238:163
+Type error: Object literal may only specify known properties, and 'description' does not exist in type 'CodexEntry'.
+
+[0m [90m 236 |[39m                     [33m<[39m[33m/[39m[33mButton[39m[33m>[39m
+ [90m 237 |[39m                 )}
+[31m[1m>[22m[39m[90m 238 |[39m                 [33m<[39m[33mButton[39m className[33m=[39m[32m"w-full"[39m variant[33m=[39m[32m"outline"[39m onClick[33m=[39m{() [33m=>[39m onSelect({ id[33m:[39m [32m'new'[39m[33m,[39m novelId[33m,[39m category[33m:[39m [32m'character'[39m[33m,[39m name[33m:[39m [32m'New Entry'[39m[33m,[39m aliases[33m:[39m [][33m,[39m description[33m:[39m [32m''[39m[33m,[39m relations[33m:[39m [] })}[33m>[39m
+ [90m     |[39m                                                                                                                                                                   [31m[1m^[22m[39m
+ [90m 239 |[39m                     [33m<[39m[33mPlus[39m className[33m=[39m[32m"mr-2 h-4 w-4"[39m [33m/[39m[33m>[39m [33mNew[39m [33mEntry[39m
+ [90m 240 |[39m                 [33m<[39m[33m/[39m[33mButton[39m[33m>[39m
+ [90m 241 |[39m             [33m<[39m[33m/[39m[33mdiv[39m[33m>[39m[0m
+Next.js build worker exited with code: 1 and signal: null

@@ -235,7 +235,7 @@ export default function CodexSidebar({ onSelect }: { onSelect: (entry: CodexEntr
                         <Plus className="mr-2 h-4 w-4" /> Generate Missing Images
                     </Button>
                 )}
-                <Button className="w-full" variant="outline" onClick={() => onSelect({ id: 'new', novelId, category: 'character', name: 'New Entry', aliases: [], description: '', relations: [] })}>
+                <Button className="w-full" variant="outline" onClick={() => onSelect({ id: 'new', novelId, category: 'character', name: 'New Entry', aliases: [], notes: '', relations: [] })}>
                     <Plus className="mr-2 h-4 w-4" /> New Entry
                 </Button>
             </div>
