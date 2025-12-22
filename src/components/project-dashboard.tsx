@@ -163,7 +163,7 @@ export default function ProjectDashboard() {
         if (!file) return;
 
         try {
-            // 1. Handle .narch (NovelArchitect Export)
+            // 1. Handle .narch (PaperArchitect Export)
             if (file.name.endsWith('.narch')) {
                 const newId = await ExportService.importProject(file);
                 alert("Import Successful!");

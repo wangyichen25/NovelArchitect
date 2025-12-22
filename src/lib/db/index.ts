@@ -21,7 +21,7 @@ function applyMods(obj: any, mods: { [keyPath: string]: any }) {
     return newObj;
 }
 
-export class NovelArchitectDB extends Dexie {
+export class PaperArchitectDB extends Dexie {
     novels!: Table<Novel>;
     acts!: Table<Act>;
     chapters!: Table<Chapter>;
@@ -31,8 +31,8 @@ export class NovelArchitectDB extends Dexie {
     prompt_presets!: Table<import('./schema').PromptPreset>;
 
     constructor() {
-        super('NovelArchitectDB');
-        console.warn('[DB] Constructor: Initializing NovelArchitectDB...');
+        super('PaperArchitectDB');
+        console.warn('[DB] Constructor: Initializing PaperArchitectDB...');
 
         // Expose to window for debugging
         if (typeof window !== 'undefined') {
@@ -207,4 +207,4 @@ export class NovelArchitectDB extends Dexie {
     }
 }
 
-export const db = new NovelArchitectDB();
+export const db = new PaperArchitectDB();
