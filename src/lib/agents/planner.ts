@@ -5,7 +5,7 @@
 import { AgentRuntime } from './runtime';
 import { resolveVariables } from './variables';
 import { parseJSON, validateKeys } from './parser';
-import { PLANNER_SYSTEM_PROMPT, PLANNER_PROMPT } from '../../../manuscript_agent_prompts';
+import { PLANNER_SYSTEM_PROMPT, PLANNER_PROMPT } from './prompts';
 import { AgentContext, PlannerOutput, PlanSection } from './types';
 
 /**
@@ -36,15 +36,14 @@ export async function runPlanner(
 
     // Validate each section has required fields
     for (const section of output.sections) {
-        validateKeys(section, ['section_title', 'status', 'section_summary', 'section_word_count']);
+        validateKeys(section, ['section_title', 'section_summary', 'section_word_count']);
     }
 
-    // Update state
+    // Update state with the new plan
+    // sectionsDrafted starts empty - manager will determine completion from manuscript
     await runtime.updateState({
         sectionPlan: output.sections,
-        sectionsDrafted: output.sections
-            .filter(s => s.status === 'complete')
-            .map(s => s.section_title)
+        sectionsDrafted: []
     });
 
     await runtime.addHistory(

@@ -17,6 +17,8 @@ import { SlashCommand, getSuggestionItems, renderItems } from '@/components/edit
 import Placeholder from '@tiptap/extension-placeholder';
 import { RewriteDialog } from './RewriteDialog';
 import { useTaskQueue } from '@/components/providers/TaskQueueProvider';
+import CharacterCount from '@tiptap/extension-character-count';
+import { countWordsExcludingCitations } from '@/lib/word-count';
 
 interface NovelEditorProps {
     initialContent?: any;
@@ -57,6 +59,9 @@ const NovelEditor = forwardRef<NovelEditorHandle, NovelEditorProps>(({ initialCo
     const editor = useEditor({
         extensions: [
             StarterKit,
+            CharacterCount.configure({
+                wordCounter: (text) => countWordsExcludingCitations(text),
+            }),
             EntityMark,
             Highlight.configure({ multicolor: true }),
             BubbleMenuExtension,
@@ -333,7 +338,7 @@ const NovelEditor = forwardRef<NovelEditorHandle, NovelEditorProps>(({ initialCo
             'Analyzing Selection...',
             async (signal) => {
                 // 1. Retrieve Config
-                let provider = localStorage.getItem('novel-architect-provider') || 'openai';
+                const provider = localStorage.getItem('novel-architect-provider') || 'openai';
                 let model = localStorage.getItem(`novel-architect-model-${provider}`);
                 let apiKey = '';
 
@@ -358,7 +363,7 @@ const NovelEditor = forwardRef<NovelEditorHandle, NovelEditorProps>(({ initialCo
                     return `- ${e.name}${aliases} [${e.category}]`;
                 }).join('\n');
 
-                let globalContext = novel ? `Novel: ${novel.title}` : "";
+                const globalContext = novel ? `Novel: ${novel.title}` : "";
 
                 const response = await fetch('/api/analyze/selection', {
                     method: 'POST',
@@ -387,7 +392,7 @@ const NovelEditor = forwardRef<NovelEditorHandle, NovelEditorProps>(({ initialCo
                     const normalize = (s: string) => s.toLowerCase().trim();
                     const normName = normalize(e.name);
 
-                    let targetEntry = existingEntries.find(ex => normalize(ex.name) === normName);
+                    const targetEntry = existingEntries.find(ex => normalize(ex.name) === normName);
 
                     if (targetEntry) {
                         // Update Existing
@@ -485,7 +490,7 @@ const NovelEditor = forwardRef<NovelEditorHandle, NovelEditorProps>(({ initialCo
 
             // Populate allowed titles
             orderedScenes.forEach(s => {
-                if (s.globalOrder < currentSceneOrder) {
+                if (s.globalOrder <= currentSceneOrder) {
                     allowedTitles.add(s.title.toLowerCase().trim());
                 }
             });
@@ -655,7 +660,7 @@ const NovelEditor = forwardRef<NovelEditorHandle, NovelEditorProps>(({ initialCo
             'AI Writing...',
             async (signal) => {
                 // 1. Retrieve Config
-                let provider = localStorage.getItem('novel-architect-provider') || 'openai';
+                const provider = localStorage.getItem('novel-architect-provider') || 'openai';
                 let model = localStorage.getItem(`novel-architect-model-${provider}`);
                 let apiKey = '';
 
@@ -717,7 +722,7 @@ const NovelEditor = forwardRef<NovelEditorHandle, NovelEditorProps>(({ initialCo
             'AI Rewrite...',
             async (signal) => {
                 // 1. Retrieve Config
-                let provider = localStorage.getItem('novel-architect-provider') || 'openai';
+                const provider = localStorage.getItem('novel-architect-provider') || 'openai';
                 let model = localStorage.getItem(`novel-architect-model-${provider}`);
                 let apiKey = '';
 
@@ -797,6 +802,9 @@ const NovelEditor = forwardRef<NovelEditorHandle, NovelEditorProps>(({ initialCo
     return (
         <div className="w-full max-w-4xl mx-auto min-h-screen flex flex-col relative">
             <EditorContent editor={editor} className="flex-1" />
+            <div className="sticky bottom-4 right-4 self-end z-10 px-3 py-1.5 bg-background/80 backdrop-blur-sm border rounded-full shadow-sm text-xs font-medium text-muted-foreground mr-4 mb-4 transition-all hover:bg-background hover:shadow-md">
+                {editor.storage.characterCount.words()} words
+            </div>
 
             {/* Custom Bubble Menu */}
             {isBubbleMenuOpen && (

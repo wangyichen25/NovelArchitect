@@ -17,6 +17,13 @@ export interface ProjectSettings {
     imageStyles?: string[]; // Custom presets for image generation
     lastActiveSceneId?: string | null; // Syncs cursor position
     activeAiModel?: string; // Syncs model selection (Can still be per-project if desired, but currently we made it global. Leaving optional)
+    images?: ProjectImage[]; // Array of Base64 strings (Book-level references)
+}
+
+export interface ProjectImage {
+    id: string; // UUID
+    name: string; // filename or label
+    data: string; // Base64
 }
 
 export interface Act {

@@ -11,6 +11,8 @@ import { AgentState } from "@/lib/db/schema";
 import { v4 as uuidv4 } from 'uuid';
 import { AgentLogView } from './AgentLogView';
 import { LogEntry } from '@/lib/agents/types';
+import { extractTextFromContent } from "@/lib/editor-utils";
+import { countWordsExcludingCitations } from "@/lib/word-count";
 
 interface AIWorkspaceProps {
     className?: string;
@@ -24,6 +26,8 @@ interface AIWorkspaceProps {
 
 export function AIWorkspace({ className, onClose, currentManuscript = "", onUpdateManuscript, sceneId, novelId, agentState }: AIWorkspaceProps) {
     const [activeTab, setActiveTab] = useState<"write" | "reference" | "logs">("write");
+    const [fallbackManuscript, setFallbackManuscript] = useState("");
+    const manuscriptRef = useRef(currentManuscript || "");
 
     // "AI Write" State - Initialize from DB prop if available
     const [instructions, setInstructions] = useState(agentState?.instructions || "");
@@ -48,6 +52,35 @@ export function AIWorkspace({ className, onClose, currentManuscript = "", onUpda
             setLocalHistory(validLogs as LogEntry[]);
         }
     }, [agentState?.history, isRunning]);
+
+    useEffect(() => {
+        const text = currentManuscript || "";
+        manuscriptRef.current = text;
+        if (text) {
+            setFallbackManuscript("");
+        }
+    }, [currentManuscript]);
+
+    useEffect(() => {
+        if (currentManuscript || !sceneId) return;
+
+        let cancelled = false;
+
+        const loadPersistedManuscript = async () => {
+            const scene = await db.scenes.get(sceneId);
+            const text = extractTextFromContent(scene?.content);
+            if (!cancelled && text.trim()) {
+                manuscriptRef.current = text;
+                setFallbackManuscript(text);
+            }
+        };
+
+        loadPersistedManuscript();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [currentManuscript, sceneId]);
 
     // Internal state to track if we need to save (dirty check)
     const isDirty = useRef(false);
@@ -121,6 +154,11 @@ export function AIWorkspace({ className, onClose, currentManuscript = "", onUpda
     };
 
 
+    const manuscriptText = currentManuscript || fallbackManuscript;
+    const manuscriptWordCount = manuscriptText
+        ? countWordsExcludingCitations(manuscriptText)
+        : 0;
+
     // Variables for Inspector - Derived directly from state/props
     const variables = activeTab === "write" ? {
         inputs: {
@@ -130,8 +168,8 @@ export function AIWorkspace({ className, onClose, currentManuscript = "", onUpda
             maxHunks
         },
         system: {
-            current_manuscript: currentManuscript || "(empty)",
-            manuscript_word_count: currentManuscript?.split(/\s+/).length || 0,
+            current_manuscript: manuscriptText || "(empty)",
+            manuscript_word_count: manuscriptWordCount,
             has_format_guidance: !!agentState?.formatGuidance
         },
         agent_state: {
@@ -148,7 +186,7 @@ export function AIWorkspace({ className, onClose, currentManuscript = "", onUpda
             maxTargets
         },
         system: {
-            current_manuscript: currentManuscript || "(empty)",
+            current_manuscript: manuscriptText || "(empty)",
         },
         reference_state: {
             existing_citations: agentState?.existingCitations || [],
@@ -157,6 +195,27 @@ export function AIWorkspace({ className, onClose, currentManuscript = "", onUpda
     };
 
     const hasHistory = (agentState?.history?.length || 0) > 0;
+
+    const resolveManuscript = useCallback(async () => {
+        const local = manuscriptRef.current || fallbackManuscript || "";
+        if (local.trim()) {
+            return local;
+        }
+
+        if (!sceneId) {
+            return local;
+        }
+
+        const scene = await db.scenes.get(sceneId);
+        const text = extractTextFromContent(scene?.content);
+        if (text.trim()) {
+            manuscriptRef.current = text;
+            setFallbackManuscript(text);
+            return text;
+        }
+
+        return local;
+    }, [fallbackManuscript, sceneId]);
 
 
     const handleStartWrite = async () => {
@@ -169,7 +228,7 @@ export function AIWorkspace({ className, onClose, currentManuscript = "", onUpda
         setActiveTab("logs");
 
         // Initialize local log tracker with current history to avoid closure staleness
-        let currentLogs = [...localHistory];
+        const currentLogs = [...localHistory];
 
         try {
             // Import manager workflow
@@ -177,11 +236,13 @@ export function AIWorkspace({ className, onClose, currentManuscript = "", onUpda
 
             // Get current manuscript from parent component
             const getCurrentManuscript = async () => {
-                return currentManuscript || '';
+                return resolveManuscript();
             };
 
             // Update manuscript function - triggers parent component update
             const updateManuscript = async (text: string) => {
+                manuscriptRef.current = text;
+                setFallbackManuscript(text);
                 console.log('[AIWorkspace] Manuscript updated, length:', text.length);
                 if (onUpdateManuscript) {
                     onUpdateManuscript(text);
@@ -233,14 +294,16 @@ export function AIWorkspace({ className, onClose, currentManuscript = "", onUpda
         setIsRunning(true);
         setActiveTab("logs");
 
-        let currentLogs = [...localHistory];
+        const currentLogs = [...localHistory];
 
         try {
             const { runCitationWorkflow } = await import('@/lib/agents/citation_runtime');
 
-            const getCurrentManuscript = async () => currentManuscript || '';
+            const getCurrentManuscript = async () => resolveManuscript();
 
             const updateManuscript = async (text: string) => {
+                manuscriptRef.current = text;
+                setFallbackManuscript(text);
                 if (onUpdateManuscript) onUpdateManuscript(text);
             };
 
@@ -328,7 +391,7 @@ export function AIWorkspace({ className, onClose, currentManuscript = "", onUpda
                                     type="number"
                                     min={1}
                                     max={10}
-                                    value={maxPasses}
+                                    value={isNaN(maxPasses) ? "" : maxPasses}
                                     onChange={(e) => handleInputChange(setMaxPasses, parseInt(e.target.value))}
                                 />
                             </div>
@@ -339,7 +402,7 @@ export function AIWorkspace({ className, onClose, currentManuscript = "", onUpda
                                     step={0.1}
                                     min={0}
                                     max={1}
-                                    value={minScore}
+                                    value={isNaN(minScore) ? "" : minScore}
                                     onChange={(e) => handleInputChange(setMinScore, parseFloat(e.target.value))}
                                 />
                             </div>
@@ -349,7 +412,7 @@ export function AIWorkspace({ className, onClose, currentManuscript = "", onUpda
                                     type="number"
                                     min={1}
                                     max={20}
-                                    value={maxHunks}
+                                    value={isNaN(maxHunks) ? "" : maxHunks}
                                     onChange={(e) => handleInputChange(setMaxHunks, parseInt(e.target.value))}
                                 />
                             </div>
@@ -413,7 +476,7 @@ export function AIWorkspace({ className, onClose, currentManuscript = "", onUpda
                                 type="number"
                                 min={1}
                                 max={20}
-                                value={maxTargets}
+                                value={isNaN(maxTargets) ? "" : maxTargets}
                                 onChange={(e) => handleInputChange(setMaxTargets, parseInt(e.target.value))}
                             />
                         </div>

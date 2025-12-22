@@ -5,7 +5,7 @@
 import { AgentRuntime } from './runtime';
 import { resolveVariables, formatArrayAsMarkdown } from './variables';
 import { parseJSON, validateKeys } from './parser';
-import { MANAGER_SYSTEM_PROMPT, MANAGER_PROMPT } from '../../../manuscript_agent_prompts';
+import { MANAGER_SYSTEM_PROMPT, MANAGER_PROMPT } from './prompts';
 import { AgentContext, ManagerDecision, PlanSection, CriticOutput } from './types';
 import { runFormatter } from './formatter';
 import { runPlanner } from './planner';
@@ -132,7 +132,39 @@ export async function runManagerWorkflow(
                     ? sectionPlan
                     : sectionPlan.sections || [];
 
-                const nextSection = getNextSectionToWrite(sections);
+                const normalizeTitle = (title: string) => (
+                    title
+                        .trim()
+                        .toLowerCase()
+                        .replace(/^[\d\s.\-–—)]+/, '')
+                        .replace(/\s+/g, ' ')
+                );
+
+                const requestedTitle = decision.parameters?.section_title?.trim();
+                let nextSection: PlanSection | null = null;
+
+                if (requestedTitle) {
+                    const requestedNormalized = normalizeTitle(requestedTitle);
+                    nextSection = sections.find(section => normalizeTitle(section.section_title) === requestedNormalized)
+                        || sections.find(section => {
+                            const candidate = normalizeTitle(section.section_title);
+                            return candidate.includes(requestedNormalized) || requestedNormalized.includes(candidate);
+                        })
+                        || null;
+                }
+
+                if (!nextSection) {
+                    if (requestedTitle) {
+                        runtime['emitLog']({
+                            agent: 'Manager',
+                            type: 'info',
+                            content: `Requested section "${requestedTitle}" not found in plan. Falling back to next missing section.`
+                        });
+                    }
+
+                    // Find next section by checking what's missing from the manuscript
+                    nextSection = getNextSectionToWrite(sections, currentManuscript);
+                }
 
                 if (!nextSection) {
                     runtime['emitLog']({
@@ -153,25 +185,70 @@ export async function runManagerWorkflow(
                 // Write the section
                 currentManuscript = await runWriter(runtime, writerContext, currentManuscript);
 
-                // Update section status in plan
-                nextSection.status = 'complete';
-                await runtime.updateState({ sectionPlan: sections });
-
                 // Update manuscript in UI/DB
                 await updateManuscript(currentManuscript);
 
                 break;
             }
 
-            case 'critique_manuscript': {
-                const critique = await runCritic(runtime, context);
+            case 'critique_and_improve_manuscript': {
+                // Initial critique
+                let critique = await runCritic(runtime, context);
                 lastCritiqueScore = critique.score;
                 lastCritiqueSummary = critique.critic_summary;
                 lastActionItems = critique.action_items;
-                reviserRequestedContinue = false; // Reset
+
+                // Loop if score is low and passes remain
+                // We use a local loop to avoid Manager round-trips
+                const state = await db.agent_state.get(runtime['stateId']!);
+                const currentPasses = state?.passIndex || 0;
+
+                // Allow up to 3 internal cycles per Manager decision, or until global max passes
+                let internalLoops = 0;
+                const MAX_INTERNAL_LOOPS = 3;
+
+                while (
+                    (lastCritiqueScore < minScore) &&
+                    ((currentPasses + internalLoops) < maxPasses) &&
+                    (internalLoops < MAX_INTERNAL_LOOPS)
+                ) {
+                    runtime['emitLog']({
+                        agent: 'Manager',
+                        type: 'info',
+                        content: `Starting autonomous improvement cycle ${internalLoops + 1}. Current Score: ${lastCritiqueScore} (Target: ${minScore})`
+                    });
+
+                    // Revise
+                    const reviseContext = await runtime.buildContext(currentManuscript, {
+                        critique_score: lastCritiqueScore,
+                        critique_summary: lastCritiqueSummary,
+                        action_items: formatArrayAsMarkdown(lastActionItems)
+                    });
+
+                    const reviseResult = await runReviser(runtime, reviseContext, currentManuscript);
+                    currentManuscript = reviseResult.manuscript;
+                    await updateManuscript(currentManuscript);
+
+                    // Re-critique to verify improvements
+                    // We need to rebuild context to reflect recent changes if strictly needed,
+                    // but key inputs are passed to runCritic via 'critique' return usually.
+                    // Actually runCritic uses context.current_manuscript logic internally via buildContext effectively 
+                    // if we were calling it from outside, but here we passed 'context' which has OLD manuscript.
+                    // We must rebuild context for the new critique!
+                    const nextContext = await runtime.buildContext(currentManuscript);
+
+                    critique = await runCritic(runtime, nextContext);
+                    lastCritiqueScore = critique.score;
+                    lastCritiqueSummary = critique.critic_summary;
+                    lastActionItems = critique.action_items;
+
+                    internalLoops++;
+                }
+
                 break;
             }
 
+            // Keep for manual/targeted usage
             case 'revise_manuscript': {
                 const reviseContext = await runtime.buildContext(currentManuscript, {
                     critique_score: lastCritiqueScore,

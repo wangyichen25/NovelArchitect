@@ -51,7 +51,7 @@ const applyThemeToDom = (theme: Theme) => {
 
 export const useThemeStore = create<ThemeState>()(
     persist(
-        (set, get) => ({
+        (set) => ({
             activeThemeId: DEFAULT_THEME_ID,
             activeTheme: defaultLightTheme,
             setTheme: (themeId: string) => {

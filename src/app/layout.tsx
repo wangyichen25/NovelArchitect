@@ -14,7 +14,7 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "NovelArchitect",
+  title: "PaperArchitect",
   description: "A Local-First, AI-Augmented IDE for Fiction",
 };
 

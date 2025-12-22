@@ -5,7 +5,7 @@
 import { AgentRuntime } from './runtime';
 import { resolveVariables } from './variables';
 import { parseJSON, validateKeys } from './parser';
-import { CITATION_GENERATOR_SYSTEM_PROMPT, CITATION_GENERATOR_PROMPT } from '../../../manuscript_agent_prompts';
+import { CITATION_GENERATOR_SYSTEM_PROMPT, CITATION_GENERATOR_PROMPT } from './prompts';
 import { AgentContext, CitationGeneratorOutput } from './types';
 
 /**

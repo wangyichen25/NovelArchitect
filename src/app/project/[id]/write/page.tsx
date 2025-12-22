@@ -7,7 +7,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { db } from "@/lib/db";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useProjectStore } from "@/hooks/useProject";
-import { Scene, Act, Chapter } from "@/lib/db/schema";
+import { Scene, Act, Chapter, ProjectImage } from "@/lib/db/schema";
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from "@/components/ui/button";
 import { Plus, Save, ChevronLeft, ChevronRight, Sparkles, Loader2, Settings } from "lucide-react";
@@ -155,10 +155,10 @@ export default function WritePage() {
     };
 
     const handleUpdate = useCallback((content: any) => {
-        if (!activeSceneId) return;
-
         // Immediate local update for AI Workspace sync
         setCurrentContent(content);
+
+        if (!activeSceneId) return;
 
         setStatus("saving");
 
@@ -208,6 +208,15 @@ export default function WritePage() {
         if (!activeSceneId) return;
         await db.scenes.update(activeSceneId, {
             title: newTitle,
+            lastModified: Date.now()
+        });
+    };
+
+    const handleUpdateImages = async (images: ProjectImage[]) => {
+        if (!novelId || !novel) return;
+        const currentSettings = novel.settings || { theme: 'system', activeAiModel: 'openai' };
+        await db.novels.update(novelId, {
+            settings: { ...currentSettings, images },
             lastModified: Date.now()
         });
     };
@@ -341,7 +350,7 @@ export default function WritePage() {
                     <AIWorkspace
                         className="w-1/3 min-w-[300px] border-l shadow-xl z-10"
                         onClose={() => setIsAIWorkspaceOpen(false)}
-                        currentManuscript={extractTextFromContent(currentContent)}
+                        currentManuscript={extractTextFromContent(currentContent ?? activeScene?.content)}
                         onUpdateManuscript={(text) => {
                             // Convert plain text back to ProseMirror JSON format
                             const paragraphs = text.split('\n\n').filter(p => p.trim());
@@ -370,7 +379,9 @@ export default function WritePage() {
                     open={isSettingsOpen}
                     onOpenChange={setIsSettingsOpen}
                     currentTitle={activeScene.title}
+                    currentImages={novel?.settings?.images}
                     onRename={handleRenameScene}
+                    onUpdateImages={handleUpdateImages}
                     onDelete={handleDeleteScene}
                 />
             )}

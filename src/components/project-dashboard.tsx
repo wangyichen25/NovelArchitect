@@ -8,11 +8,13 @@ import { Act, Chapter, Scene } from "@/lib/db/schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
-import { Plus, BookOpen, Trash2, Upload, Download } from "lucide-react";
+import { countWordsExcludingCitations } from '@/lib/word-count';
+import { Plus, BookOpen, Trash2, Upload, Download, BookPlus } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
 import { ExportService } from "@/lib/export";
 import * as mammoth from "mammoth";
 import { useUser } from "@/hooks/use-user";
+import { extractTextFromContent } from "@/lib/editor-utils";
 import { createClient } from "@/lib/supabase/client";
 import { uploadNovelToCloud, fetchUserNovels, downloadNovelFromCloud } from "@/lib/db/cloud";
 import { Cloud, LogIn, LogOut, RefreshCw } from "lucide-react";
@@ -21,7 +23,27 @@ import { parseEpub } from "@/lib/epub";
 
 
 export default function ProjectDashboard() {
-    const novels = useLiveQuery(() => db.novels.toArray());
+    const novels = useLiveQuery(async () => {
+        const allNovels = await db.novels.toArray();
+        const withCounts = await Promise.all(allNovels.map(async (n) => {
+            const scenes = await db.scenes.where({ novelId: n.id }).toArray();
+            // Calculate total word count (sum of scene word counts)
+            // We calculate directly from content to ensure accuracy even if metadata is stale.
+            const count = scenes.reduce((acc, s) => {
+                let text = "";
+                if (typeof s.content === 'string') {
+                    // HTML String: Strip tags
+                    text = s.content.replace(/<[^>]*>/g, ' ');
+                } else {
+                    // JSON Object: Extract text
+                    text = extractTextFromContent(s.content);
+                }
+                return acc + countWordsExcludingCitations(text);
+            }, 0);
+            return { ...n, wordCount: count };
+        }));
+        return withCounts.sort((a, b) => b.lastModified - a.lastModified);
+    });
     const [newTitle, setNewTitle] = useState("");
     const router = useRouter();
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -207,7 +229,7 @@ export default function ProjectDashboard() {
                         lastModified: Date.now(),
                         metadata: {
                             status: 'draft',
-                            wordCount: ch.content.replace(/<[^>]*>/g, '').split(/\s+/).length,
+                            wordCount: countWordsExcludingCitations(ch.content.replace(/<[^>]*>/g, '')),
                             povCharacterId: null,
                             locationId: null,
                             timeOfDay: "Unknown"
@@ -225,7 +247,7 @@ export default function ProjectDashboard() {
 
             // 3. Handle Text / DOCX Import
             let content = "";
-            let title = file.name.replace(/\.[^/.]+$/, "");
+            const title = file.name.replace(/\.[^/.]+$/, "");
 
             if (file.name.endsWith('.docx')) {
                 const arrayBuffer = await file.arrayBuffer();
@@ -339,7 +361,7 @@ export default function ProjectDashboard() {
                     lastModified: Date.now(),
                     metadata: {
                         status: 'draft',
-                        wordCount: scene.content.split(/\s+/).length,
+                        wordCount: countWordsExcludingCitations(scene.content),
                         povCharacterId: null, // Fixed: use povCharacterId
                         locationId: null,
                         timeOfDay: "Unknown"
@@ -478,6 +500,13 @@ export default function ProjectDashboard() {
                                 {novel.author && novel.author !== "Unknown" ? `by ${novel.author}` : ""}
                             </p>
 
+                            <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground/60">
+                                <span className="flex items-center gap-1">
+                                    <BookPlus className="h-3 w-3" />
+                                    {novel.wordCount?.toLocaleString() || 0} words
+                                </span>
+                            </div>
+
                             <div className="mt-auto pt-4 flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                                 <Button variant="ghost" size="icon" onClick={(e) => exportNovel(e, novel.id)} title="Export" className="h-8 w-8 text-muted-foreground hover:text-foreground">
                                     <Download className="h-4 w-4" />
@@ -510,4 +539,3 @@ export default function ProjectDashboard() {
         </div>
     );
 }
-

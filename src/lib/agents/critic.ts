@@ -5,7 +5,7 @@
 import { AgentRuntime } from './runtime';
 import { resolveVariables } from './variables';
 import { parseJSON, validateKeys, parseNumber } from './parser';
-import { CRITIC_SYSTEM_PROMPT, CRITIC_PROMPT } from '../../../manuscript_agent_prompts';
+import { CRITIC_SYSTEM_PROMPT, CRITIC_PROMPT } from './prompts';
 import { AgentContext, CriticOutput } from './types';
 
 /**

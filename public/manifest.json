@@ -1,6 +1,6 @@
 {
-    "name": "NovelArchitect",
-    "short_name": "NovelArch",
+    "name": "PaperArchitect",
+    "short_name": "PaperArch",
     "description": "Local-First AI-Augmented IDE for Fiction",
     "start_url": "/",
     "display": "standalone",

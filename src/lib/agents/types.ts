@@ -47,7 +47,7 @@ export interface AgentContext {
  * Manager agent decision output
  */
 export interface ManagerDecision {
-    action: 'generate_format_guidance' | 'generate_plan' | 'write_section' | 'critique_manuscript' | 'revise_manuscript' | 'finish';
+    action: 'generate_format_guidance' | 'generate_plan' | 'write_section' | 'critique_and_improve_manuscript' | 'revise_manuscript' | 'finish';
     parameters?: {
         section_title?: string;
         [key: string]: any;
@@ -64,7 +64,7 @@ export interface PlannerOutput {
 
 export interface PlanSection {
     section_title: string;
-    status: 'complete' | 'todo';
+    status?: 'complete' | 'todo'; // Optional - manager determines completeness from manuscript
     section_summary: string;
     section_word_count: number;
 }

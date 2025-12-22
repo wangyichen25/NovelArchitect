@@ -4,6 +4,7 @@
  */
 
 import { AgentContext, PlanSection } from './types';
+import { countWordsExcludingCitations } from '../word-count';
 
 /**
  * Resolve variables in a prompt template by replacing {placeholder} with actual values.
@@ -67,9 +68,8 @@ export function formatSectionPlan(sections: PlanSection[]): string {
     }
 
     return sections.map(section => {
-        const { section_title, status, section_summary, section_word_count } = section;
-        const checkbox = status === 'complete' ? '[x]' : '[ ]';
-        return `- ${checkbox} **${section_title}** (~${section_word_count} words)\n  ${section_summary}`;
+        const { section_title, section_summary, section_word_count } = section;
+        return `- **${section_title}** (~${section_word_count} words)\n  ${section_summary}`;
     }).join('\n');
 }
 
@@ -115,8 +115,8 @@ export function buildAgentContext(
         ? formatArrayAsMarkdown(state.sectionsDrafted)
         : '';
 
-    // Calculate word count
-    const wordCount = currentManuscript.trim().split(/\s+/).filter(w => w.length > 0).length;
+    // Calculate word count (exclude inline citations)
+    const wordCount = countWordsExcludingCitations(currentManuscript);
 
     // Extract existing citations (simple search for @article, @book, etc.)
     const citationMatches = currentManuscript.match(/@\w+\{[^}]+\}/g) || [];
@@ -151,10 +151,10 @@ export function buildAgentContext(
 }
 
 /**
- * Count words in a markdown text.
+ * Count words in a markdown text, excluding inline citations.
  * @param text Markdown text
  * @returns Word count
  */
 export function countWords(text: string): number {
-    return text.trim().split(/\s+/).filter(w => w.length > 0).length;
+    return countWordsExcludingCitations(text);
 }

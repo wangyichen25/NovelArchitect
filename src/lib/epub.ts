@@ -66,7 +66,7 @@ export async function parseEpub(file: File): Promise<EpubChapter[]> {
             const doc = parser.parseFromString(fileContent, "application/xhtml+xml") || parser.parseFromString(fileContent, "text/html");
 
             // Try to extract a title
-            let title = doc.querySelector("title")?.textContent ||
+            const title = doc.querySelector("title")?.textContent ||
                 doc.querySelector("h1")?.textContent ||
                 doc.querySelector("h2")?.textContent ||
                 "Chapter";

@@ -5,7 +5,7 @@
 import { AgentRuntime } from './runtime';
 import { resolveVariables, formatArrayAsMarkdown } from './variables';
 import { parseJSON, validateKeys } from './parser';
-import { REVISER_SYSTEM_PROMPT, REVISER_PROMPT } from '../../../manuscript_agent_prompts';
+import { REVISER_SYSTEM_PROMPT, REVISER_PROMPT } from './prompts';
 import { AgentContext, ReviserOutput } from './types';
 import Fuse from 'fuse.js';
 

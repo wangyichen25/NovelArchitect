@@ -11,7 +11,7 @@ export default function Home() {
 
       <div className="z-10 w-full max-w-6xl flex flex-col items-center mb-10 text-center">
         <h1 className="text-5xl md:text-8xl font-bold tracking-tight font-sans text-transparent bg-clip-text bg-gradient-to-br from-foreground to-foreground/70 drop-shadow-sm">
-          NovelArchitect
+          PaperArchitect
         </h1>
       </div>
 

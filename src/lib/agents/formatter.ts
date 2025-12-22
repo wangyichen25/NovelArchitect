@@ -4,7 +4,7 @@
 
 import { AgentRuntime } from './runtime';
 import { resolveVariables } from './variables';
-import { FORMATTER_SYSTEM_PROMPT, FORMATTER_PROMPT } from '../../../manuscript_agent_prompts';
+import { FORMATTER_SYSTEM_PROMPT, FORMATTER_PROMPT } from './prompts';
 import { AgentContext } from './types';
 
 /**

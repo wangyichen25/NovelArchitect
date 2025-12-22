@@ -7,42 +7,64 @@
 export const MANAGER_SYSTEM_PROMPT = `You are the Managing Editor of a high-impact scientific journal.
 Mission: Orchestrate the creation/revision of a publication-ready manuscript by directing a team of specialized agents (Formatter, Planner, Writer, Critic, Reviser, and Replanner).
 Operating Principles:
-- You manage the project state (to-do list, critique status) without needing to read every line of the manuscript text yourself.
-- You decide the single most effective NEXT action to advance the project based on the Sections Plan and Critique results.
-- You are decisive. Do not loop endlessly. If the plan is checked off and score is good, finish.
+- You analyze the current manuscript and critique status to determine the next action.
+- You decide the single most effective NEXT action to advance the project based on the manuscript content and critique results.
+- You are decisive. Do not loop endlessly. If the manuscript is complete and score is good, finish.
 - Your goal is to reach a "finished" state where the manuscript is complete, formatted, and critiqued.
 `;
 
 export const MANAGER_PROMPT = `Decide the next step for this manuscript project.
 
 Current State:
-- Instructions: {instructions}
-- Format Guidance Derived: {has_format_guidance}
-- Current Pass: {pass_index} (Max: {max_passes})
-- Last Action: {last_history_entry}
-- Critique Score (if any): {critique_score} (Target: {min_score})
-- Manuscript Word Count: {manuscript_word_count}
+Instructions: 
+<instructions>
+{instructions}
+</instructions>
 
-Sections Plan (To-Do List):
+Format Guidance: 
+<format_guidance>
+{format_guidance}
+</format_guidance>
+
+Writing Plan: 
+<section_plan>
 {section_plan}
+</section_plan>
+
+Current Pass:
+<pass_index>
+{pass_index} (Max: {max_passes})
+</pass_index> 
+
+Last Action: 
+<last_history_entry>
+{last_history_entry}
+</last_history_entry>
+
+Manuscript Word Count: 
+<manuscript_word_count>
+{manuscript_word_count}
+</manuscript_word_count>
+
+Current Manuscript: 
+<current_manuscript>
+{current_manuscript}
+</current_manuscript>
 
 Available Actions:
 - 1. "generate_format_guidance": If format guidance is missing.
 - 2. "generate_plan": Create or update the section outline. Use this if the plan is missing/empty.
 - 3. "write_section": Draft a specific section. Parameter: {"section_title": "Section Title"}.
-- 4. "critique_manuscript": Run a full critique on the current draft.
-- 5. "revise_manuscript": Apply editorial improvements and format fixes based on critique.
+- 4. "critique_and_improve_manuscript": Run an autonomous loop of critique -> revise -> critique ... until the score meets the target ({min_score}) or max passes ({max_passes}) are reached.
+- 5. "revise_manuscript": Apply a specific, targeted revision to the manuscript. (Only use this if you want to intervene manually).
 - 6. "finish": If the manuscript is complete and meets quality standards.
 
 Strategy:
 - If format guidance is missing, use "generate_format_guidance".
-- If format guidance exists but plan is missing, use "generate_plan".
-- If the "Sections Plan" shows any sections with status 'todo' or UNCHECKED ([ ]), select "write_section" for the next 'todo' section. Prioritize writing content over critiquing.
-- Selecting "write_section" will automatically mark the item as done ([x]) when completed.
-- Once ALL sections in the plan are marked 'complete' ([x]), run a "critique_manuscript".
-- If Critique exists and score is low (< {min_score}) and pass_index < {max_passes}, run "revise_manuscript".
-- CRITICAL: If the last history entry indicates the Reviser "requested to continue" (status: continue), you MUST strictly select "revise_manuscript" to let it finish its work.
-- If all sections are checked off ([x]), critique score is good (or max passes reached), and no further revisions are needed, select "finish".
+- If format guidance exists but manuscript is empty/minimal, use "generate_plan" to create an outline.
+- If the manuscript is missing expected sections (compare against format guidance and instructions), select "write_section" for the next missing section. Prioritize writing content over critiquing.
+- Once the manuscript has all expected sections with substantial content, select "critique_and_improve_manuscript".
+- If the manuscript is complete, critique score meets target (or max passes reached), and no further revisions are needed, select "finish".
 
 Return JSON with:
 - "action": The selected action string.
@@ -110,11 +132,10 @@ Task:
 2. Produce a single linear structure.
 3. Ensure the outline covers the whole paper.
 
-Return JSON with a "sections" array. Each section represents an item in the Manager's To-Do List:
+Return JSON with a "sections" array. Each section object must include:
 - "section_title": concise heading text.
-- "status": "complete" (maps to [x]) or "todo" (maps to [ ]).
-- "section_summary": 1–3 sentences covering key points.
-- "section_word_count": approximate target word count (or actual count if complete).
+- "section_summary": 1–5 sentences covering key points to write.
+- "section_word_count": approximate target word count.
 `;
 
 /*
@@ -160,7 +181,7 @@ Existing manuscript:
 Authoring protocol:
 1. Ensure alignment with section summary, global instructions and formatting rules.
 2. Focus ONLY on writing the specific section described in 'Section summary'. Do NOT write content for other sections listed in the 'Section Plan'.
-3. Whenever you cite evidence, append a full inline BibTeX entry in square brackets immediately after the supported statement (e.g., [@article{smith2023, author = {Smith, J.}, title = {Title}, journal = {Journal}, year = {2023}}]). Strictly avoid other citation styles, such as hyperlinks.
+3. Whenever you cite evidence, use exactly inline BibTeX entry/entries immediately after the sentence. Wrap each entry in double square brackets [[ ]]. Keep everything in one line. Example format for citations: [[@article{smith2023checkpoint, author={Smith, John A. and Lee, Maria}, title={Checkpoint inhibition in colorectal cancer}, journal={Journal of Oncology}, year={2023}, volume={14}, number={2}, pages={123--135}, doi={10.1000/j.jon.2023.0001}, url={https://doi.org/10.1000/j.jon.2023.0001}}]]. Strictly avoid other citation styles, such as hyperlinks.
 4. If no supporting source is provided, acknowledge the gap instead of fabricating data.
 5. Maintain coherence with surrounding manuscript context, including tense, voice, and terminology.
 6. Keep the section at approximately {section_word_count} words.
@@ -334,14 +355,15 @@ Existing Citations:
 {existing_citations}
 
 Requirements:
-1. Append exactly inline BibTeX entry/entries immediately after the sentence. Keep everything in one line. Example format for NEW entries:
-   @article{smith2023checkpoint, author={Smith, John A. and Lee, Maria}, title={Checkpoint inhibition in colorectal cancer}, journal={Journal of Oncology}, year={2023}, volume={14}, number={2}, pages={123--135}, doi={10.1000/j.jon.2023.0001}, url={https://doi.org/10.1000/j.jon.2023.0001}}
+1. Append exactly inline BibTeX entry/entries immediately after the sentence. Wrap each entry in double square brackets [[ ]]. Keep everything in one line. Example format for NEW entries:
+   [[@article{smith2023checkpoint, author={Smith, John A. and Lee, Maria}, title={Checkpoint inhibition in colorectal cancer}, journal={Journal of Oncology}, year={2023}, volume={14}, number={2}, pages={123--135}, doi={10.1000/j.jon.2023.0001}, url={https://doi.org/10.1000/j.jon.2023.0001}}]]
 2. If the same source already appears in existing_citations, REUSE IT VERBATIM:
    - Use the exact same BibTeX entry (unchanged fields, spacing, braces, and punctuation).
    - Use the exact same reference key (do not rename or regenerate).
    - Do not “improve,” reorder, or add/remove fields for reused entries.
-3. For existing citation that is valid but not in BibTeX format, replace it by converting the same source(s) into BibTeX.
-4. For existing citation that is invalid, replace it with a valid citation in BibTeX format.
+   - Wrap the reused entry in double square brackets [[ ]] too.
+3. For existing citation that is valid but not in BibTeX format, replace it by converting the same source(s) into BibTeX (wrapped in [[ ]]).
+4. For existing citation that is invalid, replace it with a valid citation in BibTeX format (wrapped in [[ ]]).
 5. Do not modify the sentence text other than adding a single space and citation(s).
 6. Prefer primary literature; fall back to @misc for authoritative organizations when necessary.
 7. Include identifiers such as DOI, PMID, or URL plus access date when applicable. If DOI exists, include both doi={...} and url={https://doi.org/<DOI>}.
@@ -370,6 +392,7 @@ Requirements:
    - On a match, copy the BibTeX entry EXACTLY as given (including key) and use it inline.
 11. MULTIPLE CITATIONS:
    - If more than one source is required, append multiple BibTeX entries back-to-back separated by a single space on the same line after the sentence.
+   - Each entry must be individually wrapped in [[ ]].
    - Order: first reused entries (preserving the order suggested by existing clues), then new entries in chronological order (oldest → newest).
 12. VALIDATION:
    - Do not fabricate DOIs/PMIDs. If unknown but a stable URL is available, include url={...} and urldate={YYYY-MM-DD}.

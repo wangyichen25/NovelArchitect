@@ -127,8 +127,8 @@ The manuscript system operates via two distinct, mutually exclusive workflows. T
 Detailed specifications of the agents' roles, inputs, and outputs.
 
 ### 2.1. Manager Agent (Orchestrator)
-* **Role**: The central brain that loops until the manuscript is complete. It decides the next step (Write, Critique, Revise, etc.) based on the current state.
-* **Intake Variables**: `{instructions}`, `{section_plan}`, `{pass_index}`, `{max_passes}`, `{last_history_entry}`, `{critique_score}`, `{min_score}`, `{has_format_guidance}`, `{manuscript_word_count}`.
+* **Role**: The central brain that loops until the manuscript is complete. It decides the next step (Write, Critique, Revise, etc.) based on the current manuscript content and critique results.
+* **Intake Variables**: `{instructions}`, `{current_manuscript}`, `{manuscript_word_count}`, `{pass_index}`, `{max_passes}`, `{last_history_entry}`, `{critique_score}`, `{min_score}`, `{has_format_guidance}`.
 * **Outputs**: JSON decision with `action` (e.g., `write_section`, `critique_manuscript`) and `parameters`.
 
 ### 2.2. Formatter Agent (Strategist)
@@ -257,7 +257,7 @@ The following tables define the standardized placeholders used across the agent 
 | Placeholder | Description | Origin | Consumers | Example |
 | :--- | :--- | :--- | :--- | :--- |
 | `{format_guidance}` | Specific formatting rules derived from user instructions or online research. | **Formatter Agent** (Activated by Manager calling `generate_format_guidance`) | Planner, Writer, Critic, Reviser | "### Formatting Blueprint\n- Sections: Intro, Methods, Results, Discussion." |
-| `{section_plan}` | **The Outline content.** Summary of the section plan/structure. | **Planner Agent** (Stored output, formatted as list) | Manager | "- Introduction (Reviewing)\n- Methods (Drafting)\n- Results (Pending)" |
+| `{section_plan}` | **The Outline content.** Summary of the section plan/structure. | **Planner Agent** (Stored output, formatted as list) | Writer | "- Introduction (Reviewing)\n- Methods (Drafting)\n- Results (Pending)" |
 | `{section_title}` | The specific title of the section to be written. | **Planner Agent** (Field `section_title` from `sections` array in JSON response) | Writer | "Introduction" |
 | `{section_summary}` | The specific plan for the section to be written. | **Planner Agent** (Field `section_summary` from `sections` array in JSON response) | Writer | "Introduce the concept of convolutional neural networks and their application in image recognition." |
 | `{section_word_count}` | Target word count for the specific section. | **Planner Agent** (Field `section_word_count` from `sections` array in JSON response) | Writer | "500" |

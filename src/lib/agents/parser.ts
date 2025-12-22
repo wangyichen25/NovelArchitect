@@ -1,89 +1,118 @@
 /**
- * Utility functions for parsing LLM outputs.
- * LLMs are non-deterministic and may wrap JSON in markdown code fences or add conversational text.
+ * JSON Parsing and Validation Utilities
  */
 
 /**
- * Clean JSON text by removing markdown code fences and common formatting issues.
- * @param text Raw text output from LLM
- * @returns Cleaned text ready for JSON.parse
+ * Clean raw LLM output to extract JSON.
+ * Handles markdown code blocks and surrounding text.
  */
 export function cleanJSON(text: string): string {
-    let cleaned = text.trim();
+    let clean = text.trim();
 
-    // Remove markdown code fences (```json ... ``` or ``` ... ```)
-    cleaned = cleaned.replace(/^```(?:json)?\s*\n?/i, '');
-    cleaned = cleaned.replace(/\n?```\s*$/i, '');
-
-    // Try to extract JSON if there's conversational text before/after
-    // Look for { ... } or [ ... ] patterns
-    const jsonMatch = cleaned.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
-    if (jsonMatch) {
-        cleaned = jsonMatch[1];
+    // Remove markdown code blocks
+    if (clean.includes('```json')) {
+        clean = clean.split('```json')[1];
+        if (clean.includes('```')) {
+            clean = clean.split('```')[0];
+        }
+    } else if (clean.includes('```')) {
+        // Fallback for generic code blocks
+        clean = clean.split('```')[1];
+        if (clean.includes('```')) {
+            clean = clean.split('```')[0];
+        }
     }
 
-    // Fix invalid escape sequences (common in LLM output like \cite, \textbf, etc.)
-    // Replace \ followed by a character that isn't a valid escape char with \\ (escaped backslash)
-    // Valid JSON escapes: ", \, /, b, f, n, r, t, u
-    cleaned = cleaned.replace(/\\(?![/\\bfnrtu"])/g, '\\\\');
-
-    return cleaned.trim();
+    return clean.trim();
 }
 
 /**
- * Parse JSON with cleaning and error handling.
- * @param text Raw text output from LLM
- * @returns Parsed JSON object
- * @throws Error with helpful message if parsing fails
+ * Parse JSON from string, robustly handling common LLM formatting issues.
  */
 export function parseJSON<T>(text: string): T {
     try {
         const cleaned = cleanJSON(text);
         return JSON.parse(cleaned) as T;
     } catch (error) {
-        console.error('[Parser] Failed to parse JSON:', text);
-        throw new Error(`Failed to parse LLM output as JSON: ${error instanceof Error ? error.message : String(error)}\n\nRaw output:\n${text.substring(0, 500)}...`);
+        console.error('JSON Parse Error. Raw text:', text);
+
+        // Strategy 1: Find first '{' and try to find matching '}'
+        const first = text.indexOf('{');
+        if (first >= 0) {
+            // Try to find a valid JSON by matching braces
+            let depth = 0;
+            let inString = false;
+            let escape = false;
+
+            for (let i = first; i < text.length; i++) {
+                const char = text[i];
+
+                if (escape) {
+                    escape = false;
+                    continue;
+                }
+
+                if (char === '\\' && inString) {
+                    escape = true;
+                    continue;
+                }
+
+                if (char === '"' && !escape) {
+                    inString = !inString;
+                    continue;
+                }
+
+                if (!inString) {
+                    if (char === '{') depth++;
+                    if (char === '}') {
+                        depth--;
+                        if (depth === 0) {
+                            // Found complete JSON object
+                            const candidate = text.substring(first, i + 1);
+                            try {
+                                return JSON.parse(candidate) as T;
+                            } catch {
+                                // Continue looking for another valid JSON
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Strategy 2: Simple first '{' to last '}' fallback
+        try {
+            const last = text.lastIndexOf('}');
+            if (first >= 0 && last > first) {
+                const sub = text.substring(first, last + 1);
+                return JSON.parse(sub) as T;
+            }
+        } catch {
+            // Ignore
+        }
+
+        throw new Error(`Failed to parse JSON response: ${(error as Error).message}`);
     }
 }
 
 /**
- * Extract content between XML-style tags.
- * Example: extractContent(text, 'manuscript') extracts content from <manuscript>...</manuscript>
- * @param text Raw text
- * @param tag Tag name (without angle brackets)
- * @returns Extracted content or null if tag not found
- */
-export function extractContent(text: string, tag: string): string | null {
-    const regex = new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`, 'i');
-    const match = text.match(regex);
-    return match ? match[1].trim() : null;
-}
-
-/**
- * Safely extract a number from LLM output.
- * LLMs sometimes return "0.85" as a string instead of a number.
- * @param value Value from LLM output
- * @param defaultValue Default to return if parsing fails
- * @returns Number value
- */
-export function parseNumber(value: any, defaultValue: number = 0): number {
-    if (typeof value === 'number') return value;
-    if (typeof value === 'string') {
-        const parsed = parseFloat(value);
-        return isNaN(parsed) ? defaultValue : parsed;
-    }
-    return defaultValue;
-}
-
-/**
- * Validate that a JSON object has required keys.
- * @param obj Object to validate
- * @param requiredKeys Array of required key names
- * @throws Error if any required key is missing
+ * Validate that an object contains required keys.
  */
 export function validateKeys(obj: any, requiredKeys: string[]): void {
+    if (!obj || typeof obj !== 'object') {
+        throw new Error('Output is not an object');
+    }
+
     const missing = requiredKeys.filter(key => !(key in obj));
     if (missing.length > 0) {
-        throw new Error(`Missing required keys in LLM output: ${missing.join(', ')}. Got: ${JSON.stringify(Object.keys(obj))}`);
+        throw new Error(`Missing required keys: ${missing.join(', ')}`);
     }
+}
+
+/**
+ * Parse a number safely, returning default if invalid.
+ */
+export function parseNumber(value: any, defaultValue: number): number {
+    const n = parseFloat(value);
+    return isNaN(n) ? defaultValue : n;
 }
