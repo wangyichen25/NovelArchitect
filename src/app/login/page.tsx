@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Loader2, AlertCircle } from 'lucide-react'
 
 // Dummy domain for username-based login
-const DOMAIN = 'novelarchitect.com';
+const DOMAIN = 'paperarchitect.com';
 
 export default function LoginPage() {
     const [username, setUsername] = useState('')
