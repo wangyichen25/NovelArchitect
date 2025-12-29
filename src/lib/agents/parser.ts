@@ -34,7 +34,7 @@ export function parseJSON<T>(text: string): T {
         const cleaned = cleanJSON(text);
         return JSON.parse(cleaned) as T;
     } catch (error) {
-        console.error('JSON Parse Error. Raw text:', text);
+        // Initial parse failed, try recovery strategies before logging error
 
         // Strategy 1: Find first '{' and try to find matching '}'
         const first = text.indexOf('{');
@@ -80,7 +80,22 @@ export function parseJSON<T>(text: string): T {
             }
         }
 
-        // Strategy 2: Simple first '{' to last '}' fallback
+        // Strategy 2: Fix unescaped backslashes in JSON strings (common with LaTeX)
+        // This handles cases like \section, \textit, etc. that LLMs output without escaping
+        try {
+            const last = text.lastIndexOf('}');
+            if (first >= 0 && last > first) {
+                let sub = text.substring(first, last + 1);
+                // Escape backslashes that are not already escaped and not valid JSON escapes
+                // Valid JSON escapes: \", \\, \/, \b, \f, \n, \r, \t, \uXXXX
+                sub = sub.replace(/\\(?!["\\/bfnrtu])/g, '\\\\');
+                return JSON.parse(sub) as T;
+            }
+        } catch {
+            // Ignore
+        }
+
+        // Strategy 3: Simple first '{' to last '}' fallback without escape fixing
         try {
             const last = text.lastIndexOf('}');
             if (first >= 0 && last > first) {
@@ -91,6 +106,8 @@ export function parseJSON<T>(text: string): T {
             // Ignore
         }
 
+        // All recovery strategies failed - log the error now
+        console.error('JSON Parse Error - all recovery strategies failed. Raw text:', text);
         throw new Error(`Failed to parse JSON response: ${(error as Error).message}`);
     }
 }

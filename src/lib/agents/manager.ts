@@ -4,7 +4,7 @@
 
 import { AgentRuntime } from './runtime';
 import { resolveVariables, formatArrayAsMarkdown } from './variables';
-import { parseJSON, validateKeys } from './parser';
+import { validateKeys } from './parser';
 import { MANAGER_SYSTEM_PROMPT, MANAGER_PROMPT } from './prompts';
 import { AgentContext, ManagerDecision, PlanSection, CriticOutput } from './types';
 import { runFormatter } from './formatter';
@@ -12,7 +12,11 @@ import { runPlanner } from './planner';
 import { runWriter, getNextSectionToWrite } from './writer';
 import { runCritic } from './critic';
 import { runReviser } from './reviser';
+import { runFigureProcessor, getUncitedImages } from './figure_processor';
+import { runTableProcessor } from './table_processor';
 import { db } from '@/lib/db';
+import { ProjectImage } from '@/lib/db/schema';
+import { executeWithJSONRetry } from './json_retry';
 
 /**
  * Get the next action from the Manager agent.
@@ -27,16 +31,17 @@ async function getNextAction(
     // Resolve the prompt with variables
     const userPrompt = resolveVariables(MANAGER_PROMPT, context);
 
-    // Execute manager agent (offline acceptable - decision making)
-    const response = await runtime.executeAgent(
-        MANAGER_SYSTEM_PROMPT,
-        userPrompt,
-        false, // requiresOnline
+    // Execute manager agent (offline acceptable - decision making) with JSON parse retry
+    const { output } = await executeWithJSONRetry<ManagerDecision>(
+        runtime,
+        () => runtime.executeAgent(
+            MANAGER_SYSTEM_PROMPT,
+            userPrompt,
+            false, // requiresOnline
+            'Manager'
+        ),
         'Manager'
     );
-
-    // Parse JSON output
-    const output = parseJSON<ManagerDecision>(response);
     validateKeys(output, ['action', 'reasoning']);
 
     return output;
@@ -60,9 +65,11 @@ export async function runManagerWorkflow(
     instructions: string,
     maxPasses: number,
     minScore: number,
+    images: ProjectImage[],
     getCurrentManuscript: () => Promise<string>,
     updateManuscript: (text: string) => Promise<void>,
-    onLog?: (log: any) => void
+    onLog?: (log: any) => void,
+    samplePaper?: string // Optional sample paper for formatter
 ): Promise<string> {
     // Create runtime
     const runtime = new AgentRuntime(novelId, sceneId);
@@ -95,7 +102,9 @@ export async function runManagerWorkflow(
         const context = await runtime.buildContext(currentManuscript, {
             critique_score: lastCritiqueScore,
             critique_summary: lastCritiqueSummary,
-            action_items: formatArrayAsMarkdown(lastActionItems)
+            action_items: formatArrayAsMarkdown(lastActionItems),
+            images: images.map(img => img.name).join(', '),
+            sample_paper: samplePaper // Pass sample paper for formatter
         });
 
         // Get next action from manager
@@ -116,6 +125,75 @@ export async function runManagerWorkflow(
 
             case 'generate_plan': {
                 await runPlanner(runtime, context);
+                break;
+            }
+
+            case 'process_images': {
+                const uncited = getUncitedImages(currentManuscript, images);
+                if (uncited.length === 0) {
+                    runtime['emitLog']({
+                        agent: 'Manager',
+                        type: 'info',
+                        content: 'All images are already cited in manuscript'
+                    });
+                    break;
+                }
+
+                // Use Manager's chosen image_filename, or fallback to first uncited
+                const requestedFilename = decision.parameters?.image_filename;
+                let img = requestedFilename
+                    ? uncited.find(i => i.name === requestedFilename) || images.find(i => i.name === requestedFilename)
+                    : uncited[0];
+
+                if (!img) {
+                    runtime['emitLog']({
+                        agent: 'Manager',
+                        type: 'info',
+                        content: `Image "${requestedFilename}" not found. Using first uncited image.`
+                    });
+                    img = uncited[0];
+                }
+
+                runtime['emitLog']({
+                    agent: 'FigureProcessor',
+                    type: 'info',
+                    content: `Processing image: ${img.name}`
+                });
+
+                const result = await runFigureProcessor(runtime, context, img);
+
+                // Apply find/replace to manuscript
+                if (result.find && result.replace) {
+                    currentManuscript = currentManuscript.replace(result.find, result.replace);
+                    await updateManuscript(currentManuscript);
+                }
+                break;
+            }
+
+            case 'process_tables': {
+                const rawTable = decision.parameters?.raw_table;
+                if (!rawTable || typeof rawTable !== 'string' || rawTable.trim().length === 0) {
+                    runtime['emitLog']({
+                        agent: 'Manager',
+                        type: 'error',
+                        content: 'No raw_table provided in parameters for process_tables action'
+                    });
+                    break;
+                }
+
+                runtime['emitLog']({
+                    agent: 'TableProcessor',
+                    type: 'info',
+                    content: `Processing raw table (${rawTable.substring(0, 50)}...)`
+                });
+
+                const tableResult = await runTableProcessor(runtime, context, rawTable);
+
+                // Apply find/replace to manuscript
+                if (tableResult.find && tableResult.replace) {
+                    currentManuscript = currentManuscript.replace(tableResult.find, tableResult.replace);
+                    await updateManuscript(currentManuscript);
+                }
                 break;
             }
 
@@ -192,57 +270,77 @@ export async function runManagerWorkflow(
             }
 
             case 'critique_and_improve_manuscript': {
-                // Initial critique
-                let critique = await runCritic(runtime, context);
-                lastCritiqueScore = critique.score;
-                lastCritiqueSummary = critique.critic_summary;
-                lastActionItems = critique.action_items;
-
-                // Loop if score is low and passes remain
-                // We use a local loop to avoid Manager round-trips
+                // Capture pass index before starting a critique cycle
                 const state = await db.agent_state.get(runtime['stateId']!);
-                const currentPasses = state?.passIndex || 0;
+                let passIndex = state?.passIndex || 0;
 
-                // Allow up to 3 internal cycles per Manager decision, or until global max passes
-                let internalLoops = 0;
-                const MAX_INTERNAL_LOOPS = 3;
-
-                while (
-                    (lastCritiqueScore < minScore) &&
-                    ((currentPasses + internalLoops) < maxPasses) &&
-                    (internalLoops < MAX_INTERNAL_LOOPS)
-                ) {
+                if (passIndex >= maxPasses) {
                     runtime['emitLog']({
                         agent: 'Manager',
                         type: 'info',
-                        content: `Starting autonomous improvement cycle ${internalLoops + 1}. Current Score: ${lastCritiqueScore} (Target: ${minScore})`
+                        content: `Max critique-revision cycles reached (${passIndex}/${maxPasses}). Skipping critique cycle.`
+                    });
+                    break;
+                }
+
+                // Allow up to 3 critique-revision cycles per Manager decision, or until global max passes
+                let internalLoops = 0;
+                const MAX_INTERNAL_LOOPS = 3;
+
+                while (passIndex < maxPasses && internalLoops < MAX_INTERNAL_LOOPS) {
+                    runtime['emitLog']({
+                        agent: 'Manager',
+                        type: 'info',
+                        content: `Starting critique-revision cycle ${passIndex + 1} of ${maxPasses}.`
                     });
 
-                    // Revise
-                    const reviseContext = await runtime.buildContext(currentManuscript, {
-                        critique_score: lastCritiqueScore,
-                        critique_summary: lastCritiqueSummary,
-                        action_items: formatArrayAsMarkdown(lastActionItems)
-                    });
-
-                    const reviseResult = await runReviser(runtime, reviseContext, currentManuscript);
-                    currentManuscript = reviseResult.manuscript;
-                    await updateManuscript(currentManuscript);
-
-                    // Re-critique to verify improvements
-                    // We need to rebuild context to reflect recent changes if strictly needed,
-                    // but key inputs are passed to runCritic via 'critique' return usually.
-                    // Actually runCritic uses context.current_manuscript logic internally via buildContext effectively 
-                    // if we were calling it from outside, but here we passed 'context' which has OLD manuscript.
-                    // We must rebuild context for the new critique!
-                    const nextContext = await runtime.buildContext(currentManuscript);
-
-                    critique = await runCritic(runtime, nextContext);
+                    // Critique the current manuscript
+                    const critiqueContext = await runtime.buildContext(currentManuscript);
+                    const critique = await runCritic(runtime, critiqueContext);
                     lastCritiqueScore = critique.score;
                     lastCritiqueSummary = critique.critic_summary;
                     lastActionItems = critique.action_items;
 
-                    internalLoops++;
+                    const needsRevision = (lastCritiqueScore < minScore) && (lastActionItems.length > 0);
+
+                    if (needsRevision) {
+                        // Revise based on critique feedback
+                        const reviseContext = await runtime.buildContext(currentManuscript, {
+                            critique_score: lastCritiqueScore,
+                            critique_summary: lastCritiqueSummary,
+                            action_items: formatArrayAsMarkdown(lastActionItems)
+                        });
+
+                        const reviseResult = await runReviser(runtime, reviseContext, currentManuscript);
+                        currentManuscript = reviseResult.manuscript;
+                        await updateManuscript(currentManuscript);
+
+                        // Re-critique to capture updated score and action items within the same cycle
+                        const followupContext = await runtime.buildContext(currentManuscript);
+                        const followupCritique = await runCritic(runtime, followupContext);
+                        lastCritiqueScore = followupCritique.score;
+                        lastCritiqueSummary = followupCritique.critic_summary;
+                        lastActionItems = followupCritique.action_items;
+                    }
+
+                    // Track cycle completion (critique + optional revision)
+                    passIndex += 1;
+                    internalLoops += 1;
+                    await runtime.updateState({ passIndex });
+
+                    if (passIndex >= maxPasses) {
+                        runtime['emitLog']({
+                            agent: 'Manager',
+                            type: 'info',
+                            content: `Max critique-revision cycles reached (${passIndex}/${maxPasses}).`
+                        });
+                        break;
+                    }
+
+                    // Stop if target is met or no actionable items remain
+                    if ((lastCritiqueScore >= minScore) || (lastActionItems.length === 0)) {
+                        break;
+                    }
                 }
 
                 break;
@@ -250,15 +348,27 @@ export async function runManagerWorkflow(
 
             // Keep for manual/targeted usage
             case 'revise_manuscript': {
+                const rawActionItems = decision.parameters?.action_items;
+                const requestedActionItems = Array.isArray(rawActionItems)
+                    ? rawActionItems
+                    : (typeof rawActionItems === 'string' && rawActionItems.trim().length > 0)
+                        ? [rawActionItems.trim()]
+                        : undefined;
+
+                const actionItemsForReviser = requestedActionItems && requestedActionItems.length > 0
+                    ? requestedActionItems
+                    : lastActionItems;
+
                 const reviseContext = await runtime.buildContext(currentManuscript, {
                     critique_score: lastCritiqueScore,
                     critique_summary: lastCritiqueSummary,
-                    action_items: formatArrayAsMarkdown(lastActionItems)
+                    action_items: formatArrayAsMarkdown(actionItemsForReviser)
                 });
 
                 const result = await runReviser(runtime, reviseContext, currentManuscript);
                 currentManuscript = result.manuscript;
                 reviserRequestedContinue = result.shouldContinue;
+                lastActionItems = actionItemsForReviser;
 
                 // Update manuscript in UI/DB
                 await updateManuscript(currentManuscript);

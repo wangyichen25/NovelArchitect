@@ -7,7 +7,6 @@ import { db } from '@/lib/db';
 import { AgentState } from '@/lib/db/schema';
 import { AIProviderFactory } from '@/lib/ai/providers';
 import { resolveVariables, buildAgentContext } from './variables';
-import { parseJSON, validateKeys, parseNumber } from './parser';
 import { AgentContext, LogEntry, HistoryEntry } from './types';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -118,6 +117,102 @@ export class AgentRuntime {
                 agent: agentName as any,
                 type: 'error',
                 content: `Error executing ${agentName}: ${errorMsg}`
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Execute an agent with an image using multimodal messages.
+     * @param systemPrompt System prompt for the agent
+     * @param userPrompt User prompt with variables resolved
+     * @param imageBase64 Base64 encoded image data
+     * @param agentName Name of the agent for logging
+     * @returns Raw LLM response text
+     */
+    async executeAgentWithImage(
+        systemPrompt: string,
+        userPrompt: string,
+        imageBase64: string,
+        agentName: string
+    ): Promise<string> {
+        try {
+            this.emitLog({
+                agent: agentName as any,
+                type: 'input',
+                content: `Executing ${agentName} agent with image...`,
+                metadata: { systemPrompt, userPrompt: userPrompt.substring(0, 200) }
+            });
+
+            // Get provider and API key
+            const provider = typeof window !== 'undefined'
+                ? localStorage.getItem('novel-architect-provider') || 'openrouter'
+                : 'openrouter';
+            const apiKey = localStorage.getItem(`novel-architect-key-${provider}`);
+            if (!apiKey) throw new Error(`No API key found for ${provider}`);
+
+            // Get model
+            const model = typeof window !== 'undefined'
+                ? localStorage.getItem(`novel-architect-model-${provider}`) || 'google/gemini-2.0-flash-001'
+                : 'google/gemini-2.0-flash-001';
+
+            // Build image data URL
+            const imageDataUrl = imageBase64.startsWith('data:')
+                ? imageBase64
+                : `data:image/png;base64,${imageBase64}`;
+
+            // Use OpenAI-compatible format for OpenRouter
+            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json',
+                    'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : '',
+                    'X-Title': 'PaperArchitect'
+                },
+                body: JSON.stringify({
+                    model,
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        {
+                            role: 'user',
+                            content: [
+                                {
+                                    type: 'image_url',
+                                    image_url: {
+                                        url: imageDataUrl,
+                                        detail: 'auto'
+                                    }
+                                },
+                                { type: 'text', text: userPrompt }
+                            ]
+                        }
+                    ]
+                })
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`OpenRouter API error: ${response.status} - ${errorText}`);
+            }
+
+            const data = await response.json();
+            const text = data.choices?.[0]?.message?.content || '';
+
+            this.emitLog({
+                agent: agentName as any,
+                type: 'output',
+                content: text.substring(0, 500) + (text.length > 500 ? '...' : ''),
+                metadata: { fullResponse: text }
+            });
+
+            return text;
+        } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            this.emitLog({
+                agent: agentName as any,
+                type: 'error',
+                content: `Error executing ${agentName} with image: ${errorMsg}`
             });
             throw error;
         }

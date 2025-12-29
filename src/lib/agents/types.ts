@@ -21,6 +21,7 @@ export interface AgentContext {
     last_history_entry: string;
     has_format_guidance: boolean;
     manuscript_word_count: number;
+    main_text_word_count: number;
     existing_citations: string;
 
     // Agent Inputs (Accumulating or Ephemeral)
@@ -38,16 +39,25 @@ export interface AgentContext {
 
     // Citation workflow (ephemeral)
     sentence_citation_target?: string;
+    context_before_citation_target?: string;
+    context_after_citation_target?: string;
     reason_citation_target?: string;
     section_title_citation_target?: string;
     evidence_type_citation_target?: string;
+    already_identified_targets?: string;
+
+    // Figure processor (ephemeral)
+    images?: string; // Comma-separated image filenames
+
+    // Formatter only (optional sample paper for format reference)
+    sample_paper?: string; // Sample paper content for format guidance extraction
 }
 
 /**
  * Manager agent decision output
  */
 export interface ManagerDecision {
-    action: 'generate_format_guidance' | 'generate_plan' | 'write_section' | 'critique_and_improve_manuscript' | 'revise_manuscript' | 'finish';
+    action: 'generate_format_guidance' | 'process_images' | 'process_tables' | 'generate_plan' | 'write_section' | 'critique_and_improve_manuscript' | 'revise_manuscript' | 'finish';
     parameters?: {
         section_title?: string;
         [key: string]: any;
@@ -97,7 +107,7 @@ export interface CriticOutput {
  */
 export interface ReviserOutput {
     status: 'continue' | 'satisfied';
-    rationale: string;
+    rationale?: string; // Optional - brief explanation of changes
     operations: ReviseOperation[];
 }
 
@@ -117,6 +127,8 @@ export interface CitationOrchestratorOutput {
 
 export interface CitationTarget {
     sentence_citation_target: string;
+    context_before_citation_target?: string;
+    context_after_citation_target?: string;
     section_title_citation_target: string;
     reason_citation_target: string;
     evidence_type_citation_target: string;
@@ -131,12 +143,29 @@ export interface CitationGeneratorOutput {
 }
 
 /**
+ * Figure Processor agent output
+ */
+export interface FigureProcessorOutput {
+    figure_caption: string;
+    find: string;
+    replace: string;
+}
+
+/**
+ * Table Processor agent output
+ */
+export interface TableProcessorOutput {
+    find: string;
+    replace: string;
+}
+
+/**
  * Log entry for UI display
  */
 export interface LogEntry {
     id: string;
     timestamp: number;
-    agent: 'Manager' | 'Formatter' | 'Planner' | 'Writer' | 'Critic' | 'Reviser' | 'CitationOrchestrator' | 'CitationGenerator' | 'System';
+    agent: 'Manager' | 'Formatter' | 'FigureProcessor' | 'TableProcessor' | 'Planner' | 'Writer' | 'Critic' | 'Reviser' | 'CitationOrchestrator' | 'CitationGenerator' | 'System';
     type: 'input' | 'output' | 'error' | 'info';
     content: string;
     metadata?: any;

@@ -47,6 +47,39 @@ async function getCurrentUserId() {
     return session.user.id;
 }
 
+// Retry helper with exponential backoff for transient errors (like timeouts)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function withRetry<T>(
+    operation: () => PromiseLike<{ data: T | null; error: { code: string; message: string } | null }>,
+    maxRetries: number = 3,
+    baseDelay: number = 1000
+): Promise<{ data: T | null; error: { code: string; message: string } | null }> {
+    let lastError: { code: string; message: string } | null = null;
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+        const result = await operation();
+
+        if (!result.error) {
+            return result;
+        }
+
+        // Only retry on timeout errors (57014) or connection issues
+        if (result.error.code === '57014' || result.error.code === 'PGRST301') {
+            lastError = result.error;
+            const delay = baseDelay * Math.pow(2, attempt);
+            console.warn(`[Sync] ⏱️ Timeout/connection error (attempt ${attempt + 1}/${maxRetries}), retrying in ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+        } else {
+            // Non-retryable error, return immediately
+            return result;
+        }
+    }
+
+    console.error(`[Sync] ❌ Max retries (${maxRetries}) exceeded`);
+    return { data: null, error: lastError };
+}
+
+
 // Internal Immediate Sync Functions (Bypass Debounce & Queue - Assumes called from within Queue or Debounce)
 async function _syncNovelImmediate(novelId: string): Promise<void> {
     if (!db) { console.error('[Sync] ❌ DB instance missing!'); return; }
@@ -139,7 +172,9 @@ async function _syncSceneImmediate(scene: Scene): Promise<void> {
     if (!userId) return;
 
     const supabase = createClient();
-    const { error } = await supabase.from('scenes').upsert({
+
+    // Build the payload once
+    const payload = {
         id: scene.id,
         user_id: userId,
         novel_id: scene.novelId,
@@ -151,7 +186,14 @@ async function _syncSceneImmediate(scene: Scene): Promise<void> {
         last_modified: scene.lastModified,
         metadata: scene.metadata,
         cached_mentions: scene.cachedMentions
-    });
+    };
+
+    // Use retry wrapper for timeout resilience
+    const { error } = await withRetry(
+        () => supabase.from('scenes').upsert(payload),
+        3, // max retries
+        1500 // base delay (1.5s, will double each retry)
+    );
 
     if (error) {
         if (error.code === '23503') {
@@ -166,25 +208,21 @@ async function _syncSceneImmediate(scene: Scene): Promise<void> {
                 if (novel) await _syncNovelImmediate(novel.id);
 
                 console.log('Retrying Scene Sync...');
-                await supabase.from('scenes').upsert({
-                    id: scene.id,
-                    user_id: userId,
-                    novel_id: scene.novelId,
-                    chapter_id: scene.chapterId,
-                    title: scene.title,
-                    content: scene.content,
-                    beats: scene.beats,
-                    order: scene.order,
-                    last_modified: scene.lastModified,
-                    metadata: scene.metadata,
-                    cached_mentions: scene.cachedMentions
-                });
+                await withRetry(
+                    () => supabase.from('scenes').upsert(payload),
+                    3,
+                    1500
+                );
             }
+        } else if (error.code === '57014') {
+            // If we still have timeout after retries, log it but don't spam
+            console.warn('[Sync] ⚠️ Scene sync timed out after retries. Will retry on next change.');
         } else {
             console.error('Auto-Sync Scene Error:', JSON.stringify(error, null, 2));
         }
     }
 }
+
 
 // Public Debounced Functions
 export function syncNovel(novelId: string): Promise<void> {

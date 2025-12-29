@@ -4,9 +4,10 @@
 
 import { AgentRuntime } from './runtime';
 import { resolveVariables } from './variables';
-import { parseJSON, validateKeys } from './parser';
+import { validateKeys } from './parser';
 import { PLANNER_SYSTEM_PROMPT, PLANNER_PROMPT } from './prompts';
 import { AgentContext, PlannerOutput, PlanSection } from './types';
+import { executeWithJSONRetry } from './json_retry';
 
 /**
  * Execute the Planner agent to generate a section plan.
@@ -22,16 +23,17 @@ export async function runPlanner(
     // Resolve the prompt with variables
     const userPrompt = resolveVariables(PLANNER_PROMPT, context);
 
-    // Execute agent (requires online for research)
-    const response = await runtime.executeAgent(
-        PLANNER_SYSTEM_PROMPT,
-        userPrompt,
-        true, // requiresOnline
+    // Execute agent (requires online for research) with JSON parse retry
+    const { output } = await executeWithJSONRetry<PlannerOutput>(
+        runtime,
+        () => runtime.executeAgent(
+            PLANNER_SYSTEM_PROMPT,
+            userPrompt,
+            true, // requiresOnline
+            'Planner'
+        ),
         'Planner'
     );
-
-    // Parse JSON output
-    const output = parseJSON<PlannerOutput>(response);
     validateKeys(output, ['sections']);
 
     // Validate each section has required fields

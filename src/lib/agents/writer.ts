@@ -4,9 +4,10 @@
 
 import { AgentRuntime } from './runtime';
 import { resolveVariables } from './variables';
-import { parseJSON, validateKeys } from './parser';
+import { validateKeys } from './parser';
 import { WRITER_SYSTEM_PROMPT, WRITER_PROMPT } from './prompts';
 import { AgentContext, WriterOutput, PlanSection } from './types';
+import { executeWithJSONRetry } from './json_retry';
 
 /**
  * Escape regex special characters.
@@ -134,16 +135,17 @@ export async function runWriter(
     // Resolve the prompt with variables
     const userPrompt = resolveVariables(WRITER_PROMPT, context);
 
-    // Execute agent (requires online for research/citations)
-    const response = await runtime.executeAgent(
-        WRITER_SYSTEM_PROMPT,
-        userPrompt,
-        true, // requiresOnline
+    // Execute agent (requires online for research/citations) with JSON parse retry
+    const { output } = await executeWithJSONRetry<WriterOutput>(
+        runtime,
+        () => runtime.executeAgent(
+            WRITER_SYSTEM_PROMPT,
+            userPrompt,
+            true, // requiresOnline
+            'Writer'
+        ),
         'Writer'
     );
-
-    // Parse JSON output
-    const output = parseJSON<WriterOutput>(response);
     validateKeys(output, ['rationale', 'operations']);
 
     // Apply operations to manuscript

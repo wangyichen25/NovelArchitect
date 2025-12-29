@@ -76,7 +76,7 @@ This document outlines the step-by-step plan to build the Manuscript Agent syste
     - Create `src/lib/agents/critic.ts` & `src/lib/agents/reviser.ts`.
     - `Critic`: Updates `state.critiqueScore` and `state.lastHistoryEntry`.
     - `Reviser`: Applies search/replace patches to `current_manuscript`.
-    - Update `pass_index`.
+    - Manager increments `pass_index` once per critique-revision cycle (critique + optional revision + follow-up critique), not per manager decision.
 - [x] **4.6. Runtime Loop & UI**
     - Update `src/lib/agents/runtime.ts` to manage the async loop.
     - Connect `Start` button in `AIWorkspace`.
@@ -128,8 +128,9 @@ Detailed specifications of the agents' roles, inputs, and outputs.
 
 ### 2.1. Manager Agent (Orchestrator)
 * **Role**: The central brain that loops until the manuscript is complete. It decides the next step (Write, Critique, Revise, etc.) based on the current manuscript content and critique results.
-* **Intake Variables**: `{instructions}`, `{current_manuscript}`, `{manuscript_word_count}`, `{pass_index}`, `{max_passes}`, `{last_history_entry}`, `{critique_score}`, `{min_score}`, `{has_format_guidance}`.
+* **Intake Variables**: `{instructions}`, `{current_manuscript}`, `{manuscript_word_count}`, `{pass_index}`, `{max_passes}`, `{last_history_entry}`, `{critique_score}`, `{critique_summary}`, `{action_items}`, `{min_score}`, `{has_format_guidance}`.
 * **Outputs**: JSON decision with `action` (e.g., `write_section`, `critique_manuscript`) and `parameters`.
+* **Cycle Semantics**: `{max_passes}` caps critique-revision cycles (critique → optional revision → follow-up critique). Manager must not start new cycles after the cap, but can still direct targeted edits via `revise_manuscript` with explicit `action_items`.
 
 ### 2.2. Formatter Agent (Strategist)
 * **Role**: Analyzes instructions to determines the formatting, structure, and length constraints.
@@ -243,8 +244,7 @@ The following tables define the standardized placeholders used across the agent 
 
 | Placeholder | Description | Origin | Consumers | Example |
 | :--- | :--- | :--- | :--- | :--- |
-
-| `{pass_index}` | The current iteration count for the critique/revise loop. | **Manager Logic** (Internal Loop Counter) | Manager | "0" |
+| `{pass_index}` | Number of completed critique-revision cycles (critique + optional revision + follow-up critique). | **Manager Logic** (Internal Loop Counter) | Manager | "1" |
 | `{last_history_entry}` | Description of the last action outcome. | **Manager Logic** (Action History Log) | Manager | "Writer Agent composed 'Introduction' successfully." |
 | `{has_format_guidance}` | Boolean indicating if format guidance exists. | **Manager Logic** (Flag checking for guidance artifact) | Manager | "true" |
 | `{manuscript_word_count}` | Total word count of the current manuscript. | **System Logic** (Calculated) | Manager | "1500" |
@@ -261,9 +261,9 @@ The following tables define the standardized placeholders used across the agent 
 | `{section_title}` | The specific title of the section to be written. | **Planner Agent** (Field `section_title` from `sections` array in JSON response) | Writer | "Introduction" |
 | `{section_summary}` | The specific plan for the section to be written. | **Planner Agent** (Field `section_summary` from `sections` array in JSON response) | Writer | "Introduce the concept of convolutional neural networks and their application in image recognition." |
 | `{section_word_count}` | Target word count for the specific section. | **Planner Agent** (Field `section_word_count` from `sections` array in JSON response) | Writer | "500" |
-| `{critique_summary}` | High-level summary of the manuscript's strengths and weaknesses. | **Critic Agent** (Field `critique_summary` from JSON response) | Reviser | "The draft covers the basics..." |
+| `{critique_summary}` | High-level summary of the manuscript's strengths and weaknesses. | **Critic Agent** (Field `critique_summary` from JSON response) | Reviser, Manager | "The draft covers the basics..." |
 | `{critique_score}` | The quality score (0.0 - 1.0) from the last critique. | **Critic Agent** (Field `score` from JSON response) | Manager | "0.85" |
-| `{action_items}` | List of high-priority revisions suggested by the critic. | **Critic Agent** (Field `action_items` **JSON Array** converted to **bulleted list string**) | Reviser | "- Expand discussion...\n- Fix terminology..." |
+| `{action_items}` | List of high-priority revisions suggested by the critic. | **Critic Agent** (Field `action_items` **JSON Array** converted to **bulleted list string**) | Reviser, Manager | "- Expand discussion...\n- Fix terminology..." |
 | `{sentence_citation_target}` | The exact sentence text to be processed for citations. | **Citation Orchestrator** (Field `sentence_citation_target` from `citation_targets` array in JSON response) | Citation Generator | "Deep learning has achieved dermatologist-level accuracy in melanoma detection." |
 | `{reason_citation_target}` | The reason why this sentence was selected. | **Citation Orchestrator** (Field `reason_citation_target` from `citation_targets` array in JSON response) | Citation Generator | "Factual claim requiring evidence." |
 | `{section_title_citation_target}` | The section heading containing the target sentence. | **Citation Orchestrator** (Field `section_title_citation_target` from `citation_targets` array in JSON response) | Citation Generator | "Results" |

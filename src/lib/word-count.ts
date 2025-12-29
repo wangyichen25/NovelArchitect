@@ -28,13 +28,25 @@ export function countWords(text: string): number {
 }
 
 /**
- * Removes inline BibTeX citations wrapped in [[...]] and bare BibTeX entries.
+ * Removes inline BibTeX citations wrapped in [[...]], bare BibTeX entries,
+ * and LaTeX figure citations (inline refs and figure environments).
  */
 export function stripInlineCitations(text: string): string {
     if (!text) return '';
 
-    const withoutInline = text.replace(/\[\[[\s\S]*?@\w+\{[\s\S]*?\}\]\]/g, ' ');
-    return withoutInline.replace(/@\w+\{[^\n]*\}/g, ' ');
+    // Remove inline BibTeX wrapped in [[...]]
+    let result = text.replace(/\[\[[\s\S]*?@\w+\{[\s\S]*?\}\]\]/g, ' ');
+
+    // Remove bare BibTeX entries
+    result = result.replace(/@\w+\{[^\n]*\}/g, ' ');
+
+    // Remove LaTeX figure environment blocks: \begin{figure}...\end{figure}
+    result = result.replace(/\\begin\{figure\}[\s\S]*?\\end\{figure\}/g, ' ');
+
+    // Remove inline figure references: Figure~\ref{fig:...}
+    result = result.replace(/Figure~\\ref\{fig:[^}]*\}/g, ' ');
+
+    return result;
 }
 
 /**

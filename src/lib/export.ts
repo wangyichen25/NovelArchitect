@@ -4,6 +4,14 @@ import { db } from './db';
 import { saveAs } from 'file-saver';
 import { v4 as uuidv4 } from 'uuid';
 
+// LaTeX converter for manuscript export
+export { exportToLatex } from './exporters/latex-converter';
+export type { LatexMetadata } from './exporters/latex-converter';
+
+// Word converter for manuscript export
+export { exportToWord } from './exporters/word-converter';
+
+
 // Note: file-saver needs to be installed, or we can use a simple anchor tag hack.
 // I'll assume we can use the hack if I don't want to install another dependency, 
 // but file-saver is standard. I'll stick to a native DOM implementation to save a dependency.

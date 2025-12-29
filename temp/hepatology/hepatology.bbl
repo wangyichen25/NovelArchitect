@@ -1,0 +1,1731 @@
+% $ biblatex auxiliary file $
+% $ biblatex bbl format version 3.3 $
+% Do not modify the above lines!
+%
+% This is an auxiliary file used by the 'biblatex' package.
+% This file may safely be deleted. It will be recreated by
+% biber as required.
+%
+\begingroup
+\makeatletter
+\@ifundefined{ver@biblatex.sty}
+  {\@latex@error
+     {Missing 'biblatex' package}
+     {The bibliography requires the 'biblatex' package.}
+      \aftergroup\endinput}
+  {}
+\endgroup
+
+
+\refsection{0}
+  \datalist[entry]{none/global//global/global/global}
+    \entry{aslam2023}{article}{}{}
+      \name{author}{2}{}{%
+        {{hash=68f4dfa882c8f295800401a8df1e571b}{%
+           family={Aslam},
+           familyi={A\bibinitperiod},
+           given={A.},
+           giveni={A\bibinitperiod}}}%
+        {{hash=1ac0f799dc2a022d53b0169ae537f05f}{%
+           family={Kwo},
+           familyi={K\bibinitperiod},
+           given={P.\bibnamedelimi Y.},
+           giveni={P\bibinitperiod\bibinitdelim Y\bibinitperiod}}}%
+      }
+      \strng{namehash}{8a5a18406d5963ca5c34956786057520}
+      \strng{fullhash}{8a5a18406d5963ca5c34956786057520}
+      \strng{fullhashraw}{8a5a18406d5963ca5c34956786057520}
+      \strng{bibnamehash}{8a5a18406d5963ca5c34956786057520}
+      \strng{authorbibnamehash}{8a5a18406d5963ca5c34956786057520}
+      \strng{authornamehash}{8a5a18406d5963ca5c34956786057520}
+      \strng{authorfullhash}{8a5a18406d5963ca5c34956786057520}
+      \strng{authorfullhashraw}{8a5a18406d5963ca5c34956786057520}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Journal of Clinical and Experimental Hepatology}
+      \field{title}{Epidemiology and disease burden of alcohol associated liver disease}
+      \field{volume}{13}
+      \field{year}{2023}
+      \field{pages}{88\bibrangedash 102}
+      \range{pages}{15}
+    \endentry
+    \entry{guirguis2015}{article}{}{}
+      \true{moreauthor}
+      \true{morelabelname}
+      \name{author}{6}{}{%
+        {{hash=9d9cad61df45a0ac8266fd31fdfb5350}{%
+           family={Guirguis},
+           familyi={G\bibinitperiod},
+           given={J.},
+           giveni={J\bibinitperiod}}}%
+        {{hash=43b08cd4ac9d3c6a19a2006d4a426d51}{%
+           family={Chhatwal},
+           familyi={C\bibinitperiod},
+           given={J.},
+           giveni={J\bibinitperiod}}}%
+        {{hash=c18fe4bb3682d2d84c7e2c8e726ee419}{%
+           family={Dasarathy},
+           familyi={D\bibinitperiod},
+           given={J.},
+           giveni={J\bibinitperiod}}}%
+        {{hash=176964db2224805f2000d5a94472d7dc}{%
+           family={Rivas},
+           familyi={R\bibinitperiod},
+           given={J.},
+           giveni={J\bibinitperiod}}}%
+        {{hash=97de1acd517c805e254d8a8d234b28bb}{%
+           family={McMichael},
+           familyi={M\bibinitperiod},
+           given={D.},
+           giveni={D\bibinitperiod}}}%
+        {{hash=59a8c611b03a36cf8864a04f990d1ee6}{%
+           family={Nagy},
+           familyi={N\bibinitperiod},
+           given={L.\bibnamedelimi E.},
+           giveni={L\bibinitperiod\bibinitdelim E\bibinitperiod}}}%
+      }
+      \strng{namehash}{15393a94b3529be0e3ea5c47ca9ad3a4}
+      \strng{fullhash}{15393a94b3529be0e3ea5c47ca9ad3a4}
+      \strng{fullhashraw}{15393a94b3529be0e3ea5c47ca9ad3a4}
+      \strng{bibnamehash}{15393a94b3529be0e3ea5c47ca9ad3a4}
+      \strng{authorbibnamehash}{15393a94b3529be0e3ea5c47ca9ad3a4}
+      \strng{authornamehash}{15393a94b3529be0e3ea5c47ca9ad3a4}
+      \strng{authorfullhash}{15393a94b3529be0e3ea5c47ca9ad3a4}
+      \strng{authorfullhashraw}{15393a94b3529be0e3ea5c47ca9ad3a4}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Alcoholism: Clinical and Experimental Research}
+      \field{title}{Clinical impact of alcohol-related cirrhosis in the next decade: Estimates based on current epidemiological trends in the United States}
+      \field{volume}{39}
+      \field{year}{2015}
+      \field{pages}{2085\bibrangedash 2094}
+      \range{pages}{10}
+    \endentry
+    \entry{huang2023}{article}{}{}
+      \name{author}{4}{}{%
+        {{hash=f9721afc7e88fbd61bd4e99fade348b6}{%
+           family={Huang},
+           familyi={H\bibinitperiod},
+           given={D.\bibnamedelimi Q.},
+           giveni={D\bibinitperiod\bibinitdelim Q\bibinitperiod}}}%
+        {{hash=dde29737c273912c4847ca8b0a635217}{%
+           family={Mathurin},
+           familyi={M\bibinitperiod},
+           given={P.},
+           giveni={P\bibinitperiod}}}%
+        {{hash=e186f1451499c3b5c5736d75f477a4e5}{%
+           family={Cortez-Pinto},
+           familyi={C\bibinithyphendelim P\bibinitperiod},
+           given={H.},
+           giveni={H\bibinitperiod}}}%
+        {{hash=d6b390d2122dba2b4912bddd14accb3a}{%
+           family={Loomba},
+           familyi={L\bibinitperiod},
+           given={R.},
+           giveni={R\bibinitperiod}}}%
+      }
+      \strng{namehash}{f9d102199463ba572fb8281dcf84be5b}
+      \strng{fullhash}{f9d102199463ba572fb8281dcf84be5b}
+      \strng{fullhashraw}{f9d102199463ba572fb8281dcf84be5b}
+      \strng{bibnamehash}{f9d102199463ba572fb8281dcf84be5b}
+      \strng{authorbibnamehash}{f9d102199463ba572fb8281dcf84be5b}
+      \strng{authornamehash}{f9d102199463ba572fb8281dcf84be5b}
+      \strng{authorfullhash}{f9d102199463ba572fb8281dcf84be5b}
+      \strng{authorfullhashraw}{f9d102199463ba572fb8281dcf84be5b}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Nature Reviews Gastroenterology \& Hepatology}
+      \field{title}{Global epidemiology of alcohol-associated cirrhosis and HCC: Trends, projections and risk factors}
+      \field{volume}{20}
+      \field{year}{2023}
+      \field{pages}{37\bibrangedash 49}
+      \range{pages}{13}
+    \endentry
+    \entry{niu2023}{article}{}{}
+      \true{moreauthor}
+      \true{morelabelname}
+      \name{author}{6}{}{%
+        {{hash=b7ba184e1d08f792c2364c1091962ace}{%
+           family={Niu},
+           familyi={N\bibinitperiod},
+           given={X.},
+           giveni={X\bibinitperiod}}}%
+        {{hash=0029d410aa3a4f17856f92f67e9000a0}{%
+           family={Zhu},
+           familyi={Z\bibinitperiod},
+           given={L.},
+           giveni={L\bibinitperiod}}}%
+        {{hash=2efac453cb818e3e871c3147d9153d6d}{%
+           family={Xu},
+           familyi={X\bibinitperiod},
+           given={Y.},
+           giveni={Y\bibinitperiod}}}%
+        {{hash=922b74338e14a4c81b03a7487c18522b}{%
+           family={Zhang},
+           familyi={Z\bibinitperiod},
+           given={M.},
+           giveni={M\bibinitperiod}}}%
+        {{hash=3460f2f2ddb96dc43a13c39349f841df}{%
+           family={Hao},
+           familyi={H\bibinitperiod},
+           given={Y.},
+           giveni={Y\bibinitperiod}}}%
+        {{hash=99b9a60607967ccae4682a367cc91dde}{%
+           family={Ma},
+           familyi={M\bibinitperiod},
+           given={L.},
+           giveni={L\bibinitperiod}}}%
+      }
+      \strng{namehash}{484dee2886ac6895f2e227787b6177b5}
+      \strng{fullhash}{484dee2886ac6895f2e227787b6177b5}
+      \strng{fullhashraw}{484dee2886ac6895f2e227787b6177b5}
+      \strng{bibnamehash}{484dee2886ac6895f2e227787b6177b5}
+      \strng{authorbibnamehash}{484dee2886ac6895f2e227787b6177b5}
+      \strng{authornamehash}{484dee2886ac6895f2e227787b6177b5}
+      \strng{authorfullhash}{484dee2886ac6895f2e227787b6177b5}
+      \strng{authorfullhashraw}{484dee2886ac6895f2e227787b6177b5}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{BMC Public Health}
+      \field{title}{Global prevalence, incidence, and outcomes of alcohol related liver diseases: A systematic review and meta-analysis}
+      \field{volume}{23}
+      \field{year}{2023}
+      \field{pages}{859}
+      \range{pages}{1}
+    \endentry
+    \entry{sengupta2024}{article}{}{}
+      \true{moreauthor}
+      \true{morelabelname}
+      \name{author}{6}{}{%
+        {{hash=eeb9a5a67244761d5ab06dc1565c9218}{%
+           family={Sengupta},
+           familyi={S\bibinitperiod},
+           given={S.},
+           giveni={S\bibinitperiod}}}%
+        {{hash=0627a952454a03380e0341825ab78f8c}{%
+           family={Anand},
+           familyi={A\bibinitperiod},
+           given={A.},
+           giveni={A\bibinitperiod}}}%
+        {{hash=33fb93be2a3a04852ce4cbf5b6d445ad}{%
+           family={Lopez},
+           familyi={L\bibinitperiod},
+           given={R.},
+           giveni={R\bibinitperiod}}}%
+        {{hash=d3b47ada56b974ed4061513e9b7edd00}{%
+           family={Weleff},
+           familyi={W\bibinitperiod},
+           given={J.},
+           giveni={J\bibinitperiod}}}%
+        {{hash=d77f5f58b20dd4f7ce5c7786e684df50}{%
+           family={Wang},
+           familyi={W\bibinitperiod},
+           given={P.\bibnamedelimi R.},
+           giveni={P\bibinitperiod\bibinitdelim R\bibinitperiod}}}%
+        {{hash=50053aa04fa4bf94c47605f680b12bac}{%
+           family={Bellar},
+           familyi={B\bibinitperiod},
+           given={A.},
+           giveni={A\bibinitperiod}}}%
+      }
+      \strng{namehash}{1d7b4a277f81da9a1a1d447360e342b8}
+      \strng{fullhash}{1d7b4a277f81da9a1a1d447360e342b8}
+      \strng{fullhashraw}{1d7b4a277f81da9a1a1d447360e342b8}
+      \strng{bibnamehash}{1d7b4a277f81da9a1a1d447360e342b8}
+      \strng{authorbibnamehash}{1d7b4a277f81da9a1a1d447360e342b8}
+      \strng{authornamehash}{1d7b4a277f81da9a1a1d447360e342b8}
+      \strng{authorfullhash}{1d7b4a277f81da9a1a1d447360e342b8}
+      \strng{authorfullhashraw}{1d7b4a277f81da9a1a1d447360e342b8}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Alcohol: Clinical and Experimental Research}
+      \field{title}{Emergency services utilization by patients with alcohol-associated hepatitis: An analysis of national trends}
+      \field{volume}{48}
+      \field{year}{2024}
+      \field{pages}{98\bibrangedash 109}
+      \range{pages}{12}
+    \endentry
+    \entry{hosseini2019}{article}{}{}
+      \name{author}{3}{}{%
+        {{hash=629ce224324b7e4fc9de7b50652eacd5}{%
+           family={Hosseini},
+           familyi={H\bibinitperiod},
+           given={N.},
+           giveni={N\bibinitperiod}}}%
+        {{hash=91a3def300a5c187b47b85436d5a8394}{%
+           family={Shor},
+           familyi={S\bibinitperiod},
+           given={J.},
+           giveni={J\bibinitperiod}}}%
+        {{hash=9a3e6437752ec5ae3a6317c234a49d6d}{%
+           family={Szabo},
+           familyi={S\bibinitperiod},
+           given={G.},
+           giveni={G\bibinitperiod}}}%
+      }
+      \strng{namehash}{61e1415d1b775d330cffd4d80071e4a3}
+      \strng{fullhash}{61e1415d1b775d330cffd4d80071e4a3}
+      \strng{fullhashraw}{61e1415d1b775d330cffd4d80071e4a3}
+      \strng{bibnamehash}{61e1415d1b775d330cffd4d80071e4a3}
+      \strng{authorbibnamehash}{61e1415d1b775d330cffd4d80071e4a3}
+      \strng{authornamehash}{61e1415d1b775d330cffd4d80071e4a3}
+      \strng{authorfullhash}{61e1415d1b775d330cffd4d80071e4a3}
+      \strng{authorfullhashraw}{61e1415d1b775d330cffd4d80071e4a3}
+      \field{sortinit}{3}
+      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Alcohol and Alcoholism}
+      \field{title}{Alcoholic hepatitis: A review}
+      \field{volume}{54}
+      \field{year}{2019}
+      \field{pages}{408\bibrangedash 416}
+      \range{pages}{9}
+    \endentry
+    \entry{osna2017}{article}{}{}
+      \name{author}{3}{}{%
+        {{hash=46cb9250fe0a548e619380868d4ad90b}{%
+           family={Osna},
+           familyi={O\bibinitperiod},
+           given={N.\bibnamedelimi A.},
+           giveni={N\bibinitperiod\bibinitdelim A\bibinitperiod}}}%
+        {{hash=76fe5119c23dd257b761e697da187e53}{%
+           family={Donohue},
+           familyi={D\bibinitperiod},
+           given={T.\bibnamedelimi M.},
+           giveni={T\bibinitperiod\bibinitdelim M\bibinitperiod}}}%
+        {{hash=4a561167e92d21a4fbc0f9f215875dff}{%
+           family={Kharbanda},
+           familyi={K\bibinitperiod},
+           given={K.\bibnamedelimi K.},
+           giveni={K\bibinitperiod\bibinitdelim K\bibinitperiod}}}%
+      }
+      \strng{namehash}{3aa8735c28d261f2964321b14173bc59}
+      \strng{fullhash}{3aa8735c28d261f2964321b14173bc59}
+      \strng{fullhashraw}{3aa8735c28d261f2964321b14173bc59}
+      \strng{bibnamehash}{3aa8735c28d261f2964321b14173bc59}
+      \strng{authorbibnamehash}{3aa8735c28d261f2964321b14173bc59}
+      \strng{authornamehash}{3aa8735c28d261f2964321b14173bc59}
+      \strng{authorfullhash}{3aa8735c28d261f2964321b14173bc59}
+      \strng{authorfullhashraw}{3aa8735c28d261f2964321b14173bc59}
+      \field{sortinit}{3}
+      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Alcohol Research}
+      \field{title}{Alcoholic liver disease: Pathogenesis and current management}
+      \field{volume}{38}
+      \field{year}{2017}
+      \field{pages}{147\bibrangedash 161}
+      \range{pages}{15}
+    \endentry
+    \entry{tu2023}{article}{}{}
+      \true{moreauthor}
+      \true{morelabelname}
+      \name{author}{6}{}{%
+        {{hash=af381f8abdf8a93a345a869545b8b461}{%
+           family={Tu},
+           familyi={T\bibinitperiod},
+           given={W.},
+           giveni={W\bibinitperiod}}}%
+        {{hash=5975fa34d7c4e1263618ad507cd46f25}{%
+           family={Gawrieh},
+           familyi={G\bibinitperiod},
+           given={S.},
+           giveni={S\bibinitperiod}}}%
+        {{hash=5b95a142bf20c3a9910448ad08081312}{%
+           family={Dasarathy},
+           familyi={D\bibinitperiod},
+           given={S.},
+           giveni={S\bibinitperiod}}}%
+        {{hash=07041ffed5f2a3359f679e1c7019de31}{%
+           family={Mitchell},
+           familyi={M\bibinitperiod},
+           given={M.\bibnamedelimi C.},
+           giveni={M\bibinitperiod\bibinitdelim C\bibinitperiod}}}%
+        {{hash=69fc9cf9bd4d5db15a36dfbafec67bb9}{%
+           family={Simonetto},
+           familyi={S\bibinitperiod},
+           given={D.\bibnamedelimi A.},
+           giveni={D\bibinitperiod\bibinitdelim A\bibinitperiod}}}%
+        {{hash=0ca4231e7f0cc9597310b2bf72ed5680}{%
+           family={Patidar},
+           familyi={P\bibinitperiod},
+           given={K.\bibnamedelimi R.},
+           giveni={K\bibinitperiod\bibinitdelim R\bibinitperiod}}}%
+      }
+      \strng{namehash}{e99c847dfc3218d862985e2f650fb568}
+      \strng{fullhash}{e99c847dfc3218d862985e2f650fb568}
+      \strng{fullhashraw}{e99c847dfc3218d862985e2f650fb568}
+      \strng{bibnamehash}{e99c847dfc3218d862985e2f650fb568}
+      \strng{authorbibnamehash}{e99c847dfc3218d862985e2f650fb568}
+      \strng{authornamehash}{e99c847dfc3218d862985e2f650fb568}
+      \strng{authorfullhash}{e99c847dfc3218d862985e2f650fb568}
+      \strng{authorfullhashraw}{e99c847dfc3218d862985e2f650fb568}
+      \field{sortinit}{3}
+      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Contemporary Clinical Trials Communications}
+      \field{title}{Design of a multicenter randomized clinical trial for treatment of Alcohol-Associated Hepatitis}
+      \field{volume}{32}
+      \field{year}{2023}
+      \field{pages}{101074}
+      \range{pages}{1}
+    \endentry
+    \entry{dasarathy2020}{article}{}{}
+      \true{moreauthor}
+      \true{morelabelname}
+      \name{author}{6}{}{%
+        {{hash=5b95a142bf20c3a9910448ad08081312}{%
+           family={Dasarathy},
+           familyi={D\bibinitperiod},
+           given={S.},
+           giveni={S\bibinitperiod}}}%
+        {{hash=07041ffed5f2a3359f679e1c7019de31}{%
+           family={Mitchell},
+           familyi={M\bibinitperiod},
+           given={M.\bibnamedelimi C.},
+           giveni={M\bibinitperiod\bibinitdelim C\bibinitperiod}}}%
+        {{hash=406d9abb6d3426f7c1900a8710763d6f}{%
+           family={Barton},
+           familyi={B\bibinitperiod},
+           given={B.},
+           giveni={B\bibinitperiod}}}%
+        {{hash=800ab6f92be017ecab0c17e795dacb94}{%
+           family={McClain},
+           familyi={M\bibinitperiod},
+           given={C.\bibnamedelimi J.},
+           giveni={C\bibinitperiod\bibinitdelim J\bibinitperiod}}}%
+        {{hash=9a3e6437752ec5ae3a6317c234a49d6d}{%
+           family={Szabo},
+           familyi={S\bibinitperiod},
+           given={G.},
+           giveni={G\bibinitperiod}}}%
+        {{hash=59a8c611b03a36cf8864a04f990d1ee6}{%
+           family={Nagy},
+           familyi={N\bibinitperiod},
+           given={L.\bibnamedelimi E.},
+           giveni={L\bibinitperiod\bibinitdelim E\bibinitperiod}}}%
+      }
+      \strng{namehash}{99eeb601ade196f5317d11f46e5b20ff}
+      \strng{fullhash}{99eeb601ade196f5317d11f46e5b20ff}
+      \strng{fullhashraw}{99eeb601ade196f5317d11f46e5b20ff}
+      \strng{bibnamehash}{99eeb601ade196f5317d11f46e5b20ff}
+      \strng{authorbibnamehash}{99eeb601ade196f5317d11f46e5b20ff}
+      \strng{authornamehash}{99eeb601ade196f5317d11f46e5b20ff}
+      \strng{authorfullhash}{99eeb601ade196f5317d11f46e5b20ff}
+      \strng{authorfullhashraw}{99eeb601ade196f5317d11f46e5b20ff}
+      \field{sortinit}{3}
+      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Contemporary Clinical Trials}
+      \field{title}{Design and rationale of a multicenter defeat alcoholic steatohepatitis trial (DASH): Randomized clinical trial to treat alcohol-associated hepatitis}
+      \field{volume}{96}
+      \field{year}{2020}
+      \field{pages}{106094}
+      \range{pages}{1}
+    \endentry
+    \entry{forrest2013}{article}{}{}
+      \true{moreauthor}
+      \true{morelabelname}
+      \name{author}{6}{}{%
+        {{hash=98c93160e2d44aa47023b3a3950c5673}{%
+           family={Forrest},
+           familyi={F\bibinitperiod},
+           given={E.},
+           giveni={E\bibinitperiod}}}%
+        {{hash=5556de06b7d53ed966af9566c68518cd}{%
+           family={Mellor},
+           familyi={M\bibinitperiod},
+           given={J.},
+           giveni={J\bibinitperiod}}}%
+        {{hash=a41be23f9031a0fde74c7e81fe1fe7b0}{%
+           family={Stanton},
+           familyi={S\bibinitperiod},
+           given={L.},
+           giveni={L\bibinitperiod}}}%
+        {{hash=c30ec929ee78a217e89109c9c959afd3}{%
+           family={Bowers},
+           familyi={B\bibinitperiod},
+           given={M.},
+           giveni={M\bibinitperiod}}}%
+        {{hash=865b0bd5432fbddbbdb0eb6b612788a0}{%
+           family={Ryder},
+           familyi={R\bibinitperiod},
+           given={P.},
+           giveni={P\bibinitperiod}}}%
+        {{hash=7195a4e0c33a5e380cd43c578e202dc9}{%
+           family={Austin},
+           familyi={A\bibinitperiod},
+           given={A.},
+           giveni={A\bibinitperiod}}}%
+      }
+      \strng{namehash}{2eae02e32285069aacebdbfc5ed343b6}
+      \strng{fullhash}{2eae02e32285069aacebdbfc5ed343b6}
+      \strng{fullhashraw}{2eae02e32285069aacebdbfc5ed343b6}
+      \strng{bibnamehash}{2eae02e32285069aacebdbfc5ed343b6}
+      \strng{authorbibnamehash}{2eae02e32285069aacebdbfc5ed343b6}
+      \strng{authornamehash}{2eae02e32285069aacebdbfc5ed343b6}
+      \strng{authorfullhash}{2eae02e32285069aacebdbfc5ed343b6}
+      \strng{authorfullhashraw}{2eae02e32285069aacebdbfc5ed343b6}
+      \field{sortinit}{4}
+      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Trials}
+      \field{title}{Steroids or pentoxifylline for alcoholic hepatitis (STOPAH): Study protocol for a randomised controlled trial}
+      \field{volume}{14}
+      \field{year}{2013}
+      \field{pages}{262}
+      \range{pages}{1}
+    \endentry
+    \entry{thursz2015}{article}{}{}
+      \true{moreauthor}
+      \true{morelabelname}
+      \name{author}{6}{}{%
+        {{hash=52f8501aaa694296cefcc036cbd571de}{%
+           family={Thursz},
+           familyi={T\bibinitperiod},
+           given={M.\bibnamedelimi R.},
+           giveni={M\bibinitperiod\bibinitdelim R\bibinitperiod}}}%
+        {{hash=a2f56f1351aeb5f2e0262a648b259759}{%
+           family={Richardson},
+           familyi={R\bibinitperiod},
+           given={P.},
+           giveni={P\bibinitperiod}}}%
+        {{hash=cd186dea856f6096abf37335ae83c0ae}{%
+           family={Allison},
+           familyi={A\bibinitperiod},
+           given={M.},
+           giveni={M\bibinitperiod}}}%
+        {{hash=7195a4e0c33a5e380cd43c578e202dc9}{%
+           family={Austin},
+           familyi={A\bibinitperiod},
+           given={A.},
+           giveni={A\bibinitperiod}}}%
+        {{hash=c30ec929ee78a217e89109c9c959afd3}{%
+           family={Bowers},
+           familyi={B\bibinitperiod},
+           given={M.},
+           giveni={M\bibinitperiod}}}%
+        {{hash=8d90778558f25b4ab8ed8b97fd1d17c5}{%
+           family={Day},
+           familyi={D\bibinitperiod},
+           given={C.\bibnamedelimi P.},
+           giveni={C\bibinitperiod\bibinitdelim P\bibinitperiod}}}%
+      }
+      \strng{namehash}{f2a8572539d702efed46a235594eb6dd}
+      \strng{fullhash}{f2a8572539d702efed46a235594eb6dd}
+      \strng{fullhashraw}{f2a8572539d702efed46a235594eb6dd}
+      \strng{bibnamehash}{f2a8572539d702efed46a235594eb6dd}
+      \strng{authorbibnamehash}{f2a8572539d702efed46a235594eb6dd}
+      \strng{authornamehash}{f2a8572539d702efed46a235594eb6dd}
+      \strng{authorfullhash}{f2a8572539d702efed46a235594eb6dd}
+      \strng{authorfullhashraw}{f2a8572539d702efed46a235594eb6dd}
+      \field{sortinit}{4}
+      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{New England Journal of Medicine}
+      \field{title}{Prednisolone or pentoxifylline for alcoholic hepatitis}
+      \field{volume}{372}
+      \field{year}{2015}
+      \field{pages}{1619\bibrangedash 1628}
+      \range{pages}{10}
+    \endentry
+    \entry{szabo2022}{article}{}{}
+      \true{moreauthor}
+      \true{morelabelname}
+      \name{author}{6}{}{%
+        {{hash=9a3e6437752ec5ae3a6317c234a49d6d}{%
+           family={Szabo},
+           familyi={S\bibinitperiod},
+           given={G.},
+           giveni={G\bibinitperiod}}}%
+        {{hash=b172b368c46427886b300301175277fd}{%
+           family={Mitchell},
+           familyi={M\bibinitperiod},
+           given={M.},
+           giveni={M\bibinitperiod}}}%
+        {{hash=800ab6f92be017ecab0c17e795dacb94}{%
+           family={McClain},
+           familyi={M\bibinitperiod},
+           given={C.\bibnamedelimi J.},
+           giveni={C\bibinitperiod\bibinitdelim J\bibinitperiod}}}%
+        {{hash=5b95a142bf20c3a9910448ad08081312}{%
+           family={Dasarathy},
+           familyi={D\bibinitperiod},
+           given={S.},
+           giveni={S\bibinitperiod}}}%
+        {{hash=406d9abb6d3426f7c1900a8710763d6f}{%
+           family={Barton},
+           familyi={B\bibinitperiod},
+           given={B.},
+           giveni={B\bibinitperiod}}}%
+        {{hash=dfaf8ea46be98191090579890342622f}{%
+           family={McCullough},
+           familyi={M\bibinitperiod},
+           given={A.\bibnamedelimi J.},
+           giveni={A\bibinitperiod\bibinitdelim J\bibinitperiod}}}%
+      }
+      \strng{namehash}{1282966cc7b75e2c46feddb17631c094}
+      \strng{fullhash}{1282966cc7b75e2c46feddb17631c094}
+      \strng{fullhashraw}{1282966cc7b75e2c46feddb17631c094}
+      \strng{bibnamehash}{1282966cc7b75e2c46feddb17631c094}
+      \strng{authorbibnamehash}{1282966cc7b75e2c46feddb17631c094}
+      \strng{authornamehash}{1282966cc7b75e2c46feddb17631c094}
+      \strng{authorfullhash}{1282966cc7b75e2c46feddb17631c094}
+      \strng{authorfullhashraw}{1282966cc7b75e2c46feddb17631c094}
+      \field{sortinit}{4}
+      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Hepatology}
+      \field{title}{IL-1 receptor antagonist plus pentoxifylline and zinc for severe alcohol-associated hepatitis}
+      \field{volume}{76}
+      \field{year}{2022}
+      \field{pages}{1058\bibrangedash 1068}
+      \range{pages}{11}
+    \endentry
+    \entry{gawrieh2024}{article}{}{}
+      \true{moreauthor}
+      \true{morelabelname}
+      \name{author}{6}{}{%
+        {{hash=5975fa34d7c4e1263618ad507cd46f25}{%
+           family={Gawrieh},
+           familyi={G\bibinitperiod},
+           given={S.},
+           giveni={S\bibinitperiod}}}%
+        {{hash=5b95a142bf20c3a9910448ad08081312}{%
+           family={Dasarathy},
+           familyi={D\bibinitperiod},
+           given={S.},
+           giveni={S\bibinitperiod}}}%
+        {{hash=af381f8abdf8a93a345a869545b8b461}{%
+           family={Tu},
+           familyi={T\bibinitperiod},
+           given={W.},
+           giveni={W\bibinitperiod}}}%
+        {{hash=15c15faa5df106e5107d2d9067e31b25}{%
+           family={Kamath},
+           familyi={K\bibinitperiod},
+           given={P.\bibnamedelimi S.},
+           giveni={P\bibinitperiod\bibinitdelim S\bibinitperiod}}}%
+        {{hash=38ea25e90853cac1e238818d259fb272}{%
+           family={Chalasani},
+           familyi={C\bibinitperiod},
+           given={N.\bibnamedelimi P.},
+           giveni={N\bibinitperiod\bibinitdelim P\bibinitperiod}}}%
+        {{hash=800ab6f92be017ecab0c17e795dacb94}{%
+           family={McClain},
+           familyi={M\bibinitperiod},
+           given={C.\bibnamedelimi J.},
+           giveni={C\bibinitperiod\bibinitdelim J\bibinitperiod}}}%
+      }
+      \strng{namehash}{5d68ed06df317cfb20fcaa0441ec7d21}
+      \strng{fullhash}{5d68ed06df317cfb20fcaa0441ec7d21}
+      \strng{fullhashraw}{5d68ed06df317cfb20fcaa0441ec7d21}
+      \strng{bibnamehash}{5d68ed06df317cfb20fcaa0441ec7d21}
+      \strng{authorbibnamehash}{5d68ed06df317cfb20fcaa0441ec7d21}
+      \strng{authornamehash}{5d68ed06df317cfb20fcaa0441ec7d21}
+      \strng{authorfullhash}{5d68ed06df317cfb20fcaa0441ec7d21}
+      \strng{authorfullhashraw}{5d68ed06df317cfb20fcaa0441ec7d21}
+      \field{sortinit}{4}
+      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Journal of Hepatology}
+      \field{title}{Randomized trial of anakinra plus zinc vs. prednisone for severe alcohol-associated hepatitis}
+      \field{volume}{80}
+      \field{year}{2024}
+      \field{pages}{684\bibrangedash 693}
+      \range{pages}{10}
+    \endentry
+    \entry{lee2024}{article}{}{}
+      \true{moreauthor}
+      \true{morelabelname}
+      \name{author}{6}{}{%
+        {{hash=aad99545322e3f1e69ec98e26a46eb2a}{%
+           family={Lee},
+           familyi={L\bibinitperiod},
+           given={B.\bibnamedelimi P.},
+           giveni={B\bibinitperiod\bibinitdelim P\bibinitperiod}}}%
+        {{hash=a8dad813c8759d66aeeaee38f31833c6}{%
+           family={Witkiewitz},
+           familyi={W\bibinitperiod},
+           given={K.},
+           giveni={K\bibinitperiod}}}%
+        {{hash=2cbcde709d9c22525d66cadec0b31001}{%
+           family={Mellinger},
+           familyi={M\bibinitperiod},
+           given={J.},
+           giveni={J\bibinitperiod}}}%
+        {{hash=eb9a7c24ad2fda84db5faade668672c8}{%
+           family={Anania},
+           familyi={A\bibinitperiod},
+           given={F.\bibnamedelimi A.},
+           giveni={F\bibinitperiod\bibinitdelim A\bibinitperiod}}}%
+        {{hash=6b2a136b9040269550bdaf646f0f2feb}{%
+           family={Bataller},
+           familyi={B\bibinitperiod},
+           given={R.},
+           giveni={R\bibinitperiod}}}%
+        {{hash=742ffb6cb6a6180293ba0faf36312ce0}{%
+           family={Cotter},
+           familyi={C\bibinitperiod},
+           given={T.\bibnamedelimi G.},
+           giveni={T\bibinitperiod\bibinitdelim G\bibinitperiod}}}%
+      }
+      \strng{namehash}{2996da0b502ba5f8d302bc9022f27fe0}
+      \strng{fullhash}{2996da0b502ba5f8d302bc9022f27fe0}
+      \strng{fullhashraw}{2996da0b502ba5f8d302bc9022f27fe0}
+      \strng{bibnamehash}{2996da0b502ba5f8d302bc9022f27fe0}
+      \strng{authorbibnamehash}{2996da0b502ba5f8d302bc9022f27fe0}
+      \strng{authornamehash}{2996da0b502ba5f8d302bc9022f27fe0}
+      \strng{authorfullhash}{2996da0b502ba5f8d302bc9022f27fe0}
+      \strng{authorfullhashraw}{2996da0b502ba5f8d302bc9022f27fe0}
+      \field{sortinit}{8}
+      \field{sortinithash}{a231b008ebf0ecbe0b4d96dcc159445f}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Nature Reviews Gastroenterology \& Hepatology}
+      \field{title}{Designing clinical trials to address alcohol use and alcohol-associated liver disease: An expert panel Consensus Statement}
+      \field{volume}{21}
+      \field{year}{2024}
+      \field{pages}{626\bibrangedash 645}
+      \range{pages}{20}
+    \endentry
+    \entry{liangpunsakul2011}{article}{}{}
+      \name{author}{1}{}{%
+        {{hash=a477f6efc787cdd206c9330a3c89af68}{%
+           family={Liangpunsakul},
+           familyi={L\bibinitperiod},
+           given={S.},
+           giveni={S\bibinitperiod}}}%
+      }
+      \strng{namehash}{a477f6efc787cdd206c9330a3c89af68}
+      \strng{fullhash}{a477f6efc787cdd206c9330a3c89af68}
+      \strng{fullhashraw}{a477f6efc787cdd206c9330a3c89af68}
+      \strng{bibnamehash}{a477f6efc787cdd206c9330a3c89af68}
+      \strng{authorbibnamehash}{a477f6efc787cdd206c9330a3c89af68}
+      \strng{authornamehash}{a477f6efc787cdd206c9330a3c89af68}
+      \strng{authorfullhash}{a477f6efc787cdd206c9330a3c89af68}
+      \strng{authorfullhashraw}{a477f6efc787cdd206c9330a3c89af68}
+      \field{sortinit}{9}
+      \field{sortinithash}{0a5ebc79d83c96b6579069544c73c7d4}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Journal of Clinical Gastroenterology}
+      \field{title}{Clinical characteristics and mortality of hospitalized alcoholic hepatitis patients in the United States}
+      \field{volume}{45}
+      \field{year}{2011}
+      \field{pages}{714\bibrangedash 719}
+      \range{pages}{6}
+    \endentry
+    \entry{kaur2022}{article}{}{}
+      \name{author}{3}{}{%
+        {{hash=8e8f6bcdb81844330c217418056e7f38}{%
+           family={Kaur},
+           familyi={K\bibinitperiod},
+           given={B.},
+           giveni={B\bibinitperiod}}}%
+        {{hash=7a9b0f8d2e6b989998a5ad3292cafbe0}{%
+           family={Rosenblatt},
+           familyi={R\bibinitperiod},
+           given={R.},
+           giveni={R\bibinitperiod}}}%
+        {{hash=1b1137a99a286dccb75cef5f07af24db}{%
+           family={Sundaram},
+           familyi={S\bibinitperiod},
+           given={V.},
+           giveni={V\bibinitperiod}}}%
+      }
+      \strng{namehash}{824dc248527a683a09657174491150bf}
+      \strng{fullhash}{824dc248527a683a09657174491150bf}
+      \strng{fullhashraw}{824dc248527a683a09657174491150bf}
+      \strng{bibnamehash}{824dc248527a683a09657174491150bf}
+      \strng{authorbibnamehash}{824dc248527a683a09657174491150bf}
+      \strng{authornamehash}{824dc248527a683a09657174491150bf}
+      \strng{authorfullhash}{824dc248527a683a09657174491150bf}
+      \strng{authorfullhashraw}{824dc248527a683a09657174491150bf}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Journal of Clinical and Translational Hepatology}
+      \field{title}{Infections in alcoholic hepatitis}
+      \field{volume}{10}
+      \field{year}{2022}
+      \field{pages}{718\bibrangedash 725}
+      \range{pages}{8}
+    \endentry
+    \entry{diCola2023}{article}{}{}
+      \name{author}{5}{}{%
+        {{hash=14d6c717c429fffe9f45770f56a3b53c}{%
+           family={Di\bibnamedelima Cola},
+           familyi={D\bibinitperiod\bibinitdelim C\bibinitperiod},
+           given={S.},
+           giveni={S\bibinitperiod}}}%
+        {{hash=e1d8ff15cfde4ab0475a371d611b0af7}{%
+           family={Gazda},
+           familyi={G\bibinitperiod},
+           given={J.},
+           giveni={J\bibinitperiod}}}%
+        {{hash=2bb0ed73f8b68d3fb1cc52475a4bb3ef}{%
+           family={Lapenna},
+           familyi={L\bibinitperiod},
+           given={L.},
+           giveni={L\bibinitperiod}}}%
+        {{hash=c6e3522703ae3e62fe968c74947d8a6f}{%
+           family={Ceccarelli},
+           familyi={C\bibinitperiod},
+           given={G.},
+           giveni={G\bibinitperiod}}}%
+        {{hash=a3d06b4798c8f3af4b10535dc5adbc43}{%
+           family={Merli},
+           familyi={M\bibinitperiod},
+           given={M.},
+           giveni={M\bibinitperiod}}}%
+      }
+      \strng{namehash}{7d78dcb25447b8a038e1442a38d2f5f4}
+      \strng{fullhash}{7d78dcb25447b8a038e1442a38d2f5f4}
+      \strng{fullhashraw}{7d78dcb25447b8a038e1442a38d2f5f4}
+      \strng{bibnamehash}{7d78dcb25447b8a038e1442a38d2f5f4}
+      \strng{authorbibnamehash}{7d78dcb25447b8a038e1442a38d2f5f4}
+      \strng{authornamehash}{7d78dcb25447b8a038e1442a38d2f5f4}
+      \strng{authorfullhash}{7d78dcb25447b8a038e1442a38d2f5f4}
+      \strng{authorfullhashraw}{7d78dcb25447b8a038e1442a38d2f5f4}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{JHEP Reports}
+      \field{title}{Infection prevention and control programme and COVID-19 measures: Effects on hospital-acquired infections in patients with cirrhosis}
+      \field{volume}{5}
+      \field{year}{2023}
+      \field{pages}{100703}
+      \range{pages}{1}
+    \endentry
+    \entry{lourens2017}{article}{}{}
+      \true{moreauthor}
+      \true{morelabelname}
+      \name{author}{6}{}{%
+        {{hash=0e3c8f77b9372c1599941612f3b3699f}{%
+           family={Lourens},
+           familyi={L\bibinitperiod},
+           given={S.},
+           giveni={S\bibinitperiod}}}%
+        {{hash=dea05da0f74f91a0fd11ee803650335b}{%
+           family={Sunjaya},
+           familyi={S\bibinitperiod},
+           given={D.\bibnamedelimi B.},
+           giveni={D\bibinitperiod\bibinitdelim B\bibinitperiod}}}%
+        {{hash=7896209717419e37af035d8ddc8e6df7}{%
+           family={Singal},
+           familyi={S\bibinitperiod},
+           given={A.},
+           giveni={A\bibinitperiod}}}%
+        {{hash=a477f6efc787cdd206c9330a3c89af68}{%
+           family={Liangpunsakul},
+           familyi={L\bibinitperiod},
+           given={S.},
+           giveni={S\bibinitperiod}}}%
+        {{hash=c8b6f579eae348181f1c268a02570403}{%
+           family={Puri},
+           familyi={P\bibinitperiod},
+           given={P.},
+           giveni={P\bibinitperiod}}}%
+        {{hash=4945b1432c9e775f78456282c53db873}{%
+           family={Sanyal},
+           familyi={S\bibinitperiod},
+           given={A.},
+           giveni={A\bibinitperiod}}}%
+      }
+      \strng{namehash}{fed3135b4cd4da022adc1e6c4f5c70c4}
+      \strng{fullhash}{fed3135b4cd4da022adc1e6c4f5c70c4}
+      \strng{fullhashraw}{fed3135b4cd4da022adc1e6c4f5c70c4}
+      \strng{bibnamehash}{fed3135b4cd4da022adc1e6c4f5c70c4}
+      \strng{authorbibnamehash}{fed3135b4cd4da022adc1e6c4f5c70c4}
+      \strng{authornamehash}{fed3135b4cd4da022adc1e6c4f5c70c4}
+      \strng{authorfullhash}{fed3135b4cd4da022adc1e6c4f5c70c4}
+      \strng{authorfullhashraw}{fed3135b4cd4da022adc1e6c4f5c70c4}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Mayo Clinic Proceedings: Innovations, Quality \& Outcomes}
+      \field{title}{Acute alcoholic hepatitis: Natural history and predictors of mortality using a multicenter prospective study}
+      \field{volume}{1}
+      \field{year}{2017}
+      \field{pages}{37\bibrangedash 48}
+      \range{pages}{12}
+    \endentry
+    \entry{shang2025}{article}{}{}
+      \true{moreauthor}
+      \true{morelabelname}
+      \name{author}{6}{}{%
+        {{hash=8678b7d96e9d0dafc70c2d4aa14fda63}{%
+           family={Shang},
+           familyi={S\bibinitperiod},
+           given={Y.},
+           giveni={Y\bibinitperiod}}}%
+        {{hash=f195c14f5a38af91057a1fff570e88fb}{%
+           family={Akbari},
+           familyi={A\bibinitperiod},
+           given={C.},
+           giveni={C\bibinitperiod}}}%
+        {{hash=015c3d4e7121d43ce43aff28ece2899b}{%
+           family={Dodd},
+           familyi={D\bibinitperiod},
+           given={M.},
+           giveni={M\bibinitperiod}}}%
+        {{hash=30ff3ef4a89e0c6777f480da5386b053}{%
+           family={Zhang},
+           familyi={Z\bibinitperiod},
+           given={X.},
+           giveni={X\bibinitperiod}}}%
+        {{hash=2ca38ebc0e0cb8064a936205d2da287f}{%
+           family={Wang},
+           familyi={W\bibinitperiod},
+           given={T.},
+           giveni={T\bibinitperiod}}}%
+        {{hash=4389eaa931ab5e2ddfd5650d08d29aa4}{%
+           family={Jemielita},
+           familyi={J\bibinitperiod},
+           given={T.},
+           giveni={T\bibinitperiod}}}%
+      }
+      \strng{namehash}{07df1109935ae451b738cf16dcd8dc1d}
+      \strng{fullhash}{07df1109935ae451b738cf16dcd8dc1d}
+      \strng{fullhashraw}{07df1109935ae451b738cf16dcd8dc1d}
+      \strng{bibnamehash}{07df1109935ae451b738cf16dcd8dc1d}
+      \strng{authorbibnamehash}{07df1109935ae451b738cf16dcd8dc1d}
+      \strng{authornamehash}{07df1109935ae451b738cf16dcd8dc1d}
+      \strng{authorfullhash}{07df1109935ae451b738cf16dcd8dc1d}
+      \strng{authorfullhashraw}{07df1109935ae451b738cf16dcd8dc1d}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Hepatology}
+      \field{title}{Association between longitudinal biomarkers and major adverse liver outcomes in patients with non-cirrhotic metabolic dysfunction-associated steatotic liver disease}
+      \field{volume}{81}
+      \field{year}{2025}
+      \field{pages}{1501\bibrangedash 1511}
+      \range{pages}{11}
+    \endentry
+    \entry{dagPerf2024}{article}{}{}
+      \true{moreauthor}
+      \true{morelabelname}
+      \name{author}{6}{}{%
+        {{hash=5b95a142bf20c3a9910448ad08081312}{%
+           family={Dasarathy},
+           familyi={D\bibinitperiod},
+           given={S.},
+           giveni={S\bibinitperiod}}}%
+        {{hash=af381f8abdf8a93a345a869545b8b461}{%
+           family={Tu},
+           familyi={T\bibinitperiod},
+           given={W.},
+           giveni={W\bibinitperiod}}}%
+        {{hash=50053aa04fa4bf94c47605f680b12bac}{%
+           family={Bellar},
+           familyi={B\bibinitperiod},
+           given={A.},
+           giveni={A\bibinitperiod}}}%
+        {{hash=e745763f987426d0b551c5fce7c19004}{%
+           family={Welch},
+           familyi={W\bibinitperiod},
+           given={N.},
+           giveni={N\bibinitperiod}}}%
+        {{hash=69631a6053724d2d6d820b2b0e18cc25}{%
+           family={Kettler},
+           familyi={K\bibinitperiod},
+           given={C.},
+           giveni={C\bibinitperiod}}}%
+        {{hash=4d364a0b532303441c6621ce57289055}{%
+           family={Tang},
+           familyi={T\bibinitperiod},
+           given={Q.},
+           giveni={Q\bibinitperiod}}}%
+      }
+      \strng{namehash}{b77bcd20c345065343e4beca5ecd4806}
+      \strng{fullhash}{b77bcd20c345065343e4beca5ecd4806}
+      \strng{fullhashraw}{b77bcd20c345065343e4beca5ecd4806}
+      \strng{bibnamehash}{b77bcd20c345065343e4beca5ecd4806}
+      \strng{authorbibnamehash}{b77bcd20c345065343e4beca5ecd4806}
+      \strng{authornamehash}{b77bcd20c345065343e4beca5ecd4806}
+      \strng{authorfullhash}{b77bcd20c345065343e4beca5ecd4806}
+      \strng{authorfullhashraw}{b77bcd20c345065343e4beca5ecd4806}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Contemporary Clinical Trials}
+      \field{title}{Development and evaluation of objective trial performance metrics for multisite clinical studies: Experience from the AlcHep Network}
+      \field{volume}{138}
+      \field{year}{2024}
+      \field{pages}{107437}
+      \range{pages}{1}
+    \endentry
+    \entry{crabb2016}{article}{}{}
+      \true{moreauthor}
+      \true{morelabelname}
+      \name{author}{6}{}{%
+        {{hash=4bbb31f9192766a4984d9cc0ccda092f}{%
+           family={Crabb},
+           familyi={C\bibinitperiod},
+           given={D.\bibnamedelimi W.},
+           giveni={D\bibinitperiod\bibinitdelim W\bibinitperiod}}}%
+        {{hash=6b2a136b9040269550bdaf646f0f2feb}{%
+           family={Bataller},
+           familyi={B\bibinitperiod},
+           given={R.},
+           giveni={R\bibinitperiod}}}%
+        {{hash=38ea25e90853cac1e238818d259fb272}{%
+           family={Chalasani},
+           familyi={C\bibinitperiod},
+           given={N.\bibnamedelimi P.},
+           giveni={N\bibinitperiod\bibinitdelim P\bibinitperiod}}}%
+        {{hash=15c15faa5df106e5107d2d9067e31b25}{%
+           family={Kamath},
+           familyi={K\bibinitperiod},
+           given={P.\bibnamedelimi S.},
+           giveni={P\bibinitperiod\bibinitdelim S\bibinitperiod}}}%
+        {{hash=4a3b4deb48a9b7adc8aac74109de04b3}{%
+           family={Lucey},
+           familyi={L\bibinitperiod},
+           given={M.},
+           giveni={M\bibinitperiod}}}%
+        {{hash=dde29737c273912c4847ca8b0a635217}{%
+           family={Mathurin},
+           familyi={M\bibinitperiod},
+           given={P.},
+           giveni={P\bibinitperiod}}}%
+      }
+      \strng{namehash}{dfc7251644d575b4e4557034d00dfaac}
+      \strng{fullhash}{dfc7251644d575b4e4557034d00dfaac}
+      \strng{fullhashraw}{dfc7251644d575b4e4557034d00dfaac}
+      \strng{bibnamehash}{dfc7251644d575b4e4557034d00dfaac}
+      \strng{authorbibnamehash}{dfc7251644d575b4e4557034d00dfaac}
+      \strng{authornamehash}{dfc7251644d575b4e4557034d00dfaac}
+      \strng{authorfullhash}{dfc7251644d575b4e4557034d00dfaac}
+      \strng{authorfullhashraw}{dfc7251644d575b4e4557034d00dfaac}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Gastroenterology}
+      \field{title}{Standard definitions and common data elements for clinical trials in patients with alcoholic hepatitis: Recommendation from the NIAAA Alcoholic Hepatitis Consortia}
+      \field{volume}{150}
+      \field{year}{2016}
+      \field{pages}{785\bibrangedash 790}
+      \range{pages}{6}
+    \endentry
+    \entry{kamath2001}{article}{}{}
+      \true{moreauthor}
+      \true{morelabelname}
+      \name{author}{6}{}{%
+        {{hash=15c15faa5df106e5107d2d9067e31b25}{%
+           family={Kamath},
+           familyi={K\bibinitperiod},
+           given={P.\bibnamedelimi S.},
+           giveni={P\bibinitperiod\bibinitdelim S\bibinitperiod}}}%
+        {{hash=9f6bc6e43c7fd01129b09275eb53b0e4}{%
+           family={Wiesner},
+           familyi={W\bibinitperiod},
+           given={R.\bibnamedelimi H.},
+           giveni={R\bibinitperiod\bibinitdelim H\bibinitperiod}}}%
+        {{hash=8f24ad31a0bf07c3cde760308314d6c4}{%
+           family={Malinchoc},
+           familyi={M\bibinitperiod},
+           given={M.},
+           giveni={M\bibinitperiod}}}%
+        {{hash=a2b2a8429d92b34c31c07717e817e793}{%
+           family={Kremers},
+           familyi={K\bibinitperiod},
+           given={W.},
+           giveni={W\bibinitperiod}}}%
+        {{hash=07eea4908cab8172765bca96364414ad}{%
+           family={Therneau},
+           familyi={T\bibinitperiod},
+           given={T.\bibnamedelimi M.},
+           giveni={T\bibinitperiod\bibinitdelim M\bibinitperiod}}}%
+        {{hash=a3efc0f3e9d51bccf5f15e281a9a7f91}{%
+           family={Kosberg},
+           familyi={K\bibinitperiod},
+           given={C.\bibnamedelimi L.},
+           giveni={C\bibinitperiod\bibinitdelim L\bibinitperiod}}}%
+      }
+      \strng{namehash}{7312ef6a9da2ff0817541c3e72e4e004}
+      \strng{fullhash}{7312ef6a9da2ff0817541c3e72e4e004}
+      \strng{fullhashraw}{7312ef6a9da2ff0817541c3e72e4e004}
+      \strng{bibnamehash}{7312ef6a9da2ff0817541c3e72e4e004}
+      \strng{authorbibnamehash}{7312ef6a9da2ff0817541c3e72e4e004}
+      \strng{authornamehash}{7312ef6a9da2ff0817541c3e72e4e004}
+      \strng{authorfullhash}{7312ef6a9da2ff0817541c3e72e4e004}
+      \strng{authorfullhashraw}{7312ef6a9da2ff0817541c3e72e4e004}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Hepatology}
+      \field{title}{A model to predict survival in patients with end-stage liver disease}
+      \field{volume}{33}
+      \field{year}{2001}
+      \field{pages}{464\bibrangedash 470}
+      \range{pages}{7}
+    \endentry
+    \entry{singal2013}{article}{}{}
+      \name{author}{2}{}{%
+        {{hash=c35603fa953681add9c728423ee35fc2}{%
+           family={Singal},
+           familyi={S\bibinitperiod},
+           given={A.\bibnamedelimi K.},
+           giveni={A\bibinitperiod\bibinitdelim K\bibinitperiod}}}%
+        {{hash=15c15faa5df106e5107d2d9067e31b25}{%
+           family={Kamath},
+           familyi={K\bibinitperiod},
+           given={P.\bibnamedelimi S.},
+           giveni={P\bibinitperiod\bibinitdelim S\bibinitperiod}}}%
+      }
+      \strng{namehash}{b903d6fdaf646ad20db929d064a257dc}
+      \strng{fullhash}{b903d6fdaf646ad20db929d064a257dc}
+      \strng{fullhashraw}{b903d6fdaf646ad20db929d064a257dc}
+      \strng{bibnamehash}{b903d6fdaf646ad20db929d064a257dc}
+      \strng{authorbibnamehash}{b903d6fdaf646ad20db929d064a257dc}
+      \strng{authornamehash}{b903d6fdaf646ad20db929d064a257dc}
+      \strng{authorfullhash}{b903d6fdaf646ad20db929d064a257dc}
+      \strng{authorfullhashraw}{b903d6fdaf646ad20db929d064a257dc}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Journal of Clinical and Experimental Hepatology}
+      \field{title}{Model for end-stage liver disease}
+      \field{volume}{3}
+      \field{year}{2013}
+      \field{pages}{50\bibrangedash 60}
+      \range{pages}{11}
+    \endentry
+    \entry{dunn2005}{article}{}{}
+      \true{moreauthor}
+      \true{morelabelname}
+      \name{author}{6}{}{%
+        {{hash=1a740c22cd3e5e62f0e302a398d2ff99}{%
+           family={Dunn},
+           familyi={D\bibinitperiod},
+           given={W.},
+           giveni={W\bibinitperiod}}}%
+        {{hash=1143fcf6f8e551c4dba56a6a0971db12}{%
+           family={Jamil},
+           familyi={J\bibinitperiod},
+           given={L.\bibnamedelimi H.},
+           giveni={L\bibinitperiod\bibinitdelim H\bibinitperiod}}}%
+        {{hash=5633800908bf80827072181ccc3fff41}{%
+           family={Brown},
+           familyi={B\bibinitperiod},
+           given={L.\bibnamedelimi S.},
+           giveni={L\bibinitperiod\bibinitdelim S\bibinitperiod}}}%
+        {{hash=9f6bc6e43c7fd01129b09275eb53b0e4}{%
+           family={Wiesner},
+           familyi={W\bibinitperiod},
+           given={R.\bibnamedelimi H.},
+           giveni={R\bibinitperiod\bibinitdelim H\bibinitperiod}}}%
+        {{hash=adfdf91133eeafe2ec0a23290a956139}{%
+           family={Kim},
+           familyi={K\bibinitperiod},
+           given={W.\bibnamedelimi R.},
+           giveni={W\bibinitperiod\bibinitdelim R\bibinitperiod}}}%
+        {{hash=fd07104b650b580abf14d00ef7ed5304}{%
+           family={Menon},
+           familyi={M\bibinitperiod},
+           given={K.\bibnamedelimi N.},
+           giveni={K\bibinitperiod\bibinitdelim N\bibinitperiod}}}%
+      }
+      \strng{namehash}{5a6fdf60556f90597df5728908ea58ee}
+      \strng{fullhash}{5a6fdf60556f90597df5728908ea58ee}
+      \strng{fullhashraw}{5a6fdf60556f90597df5728908ea58ee}
+      \strng{bibnamehash}{5a6fdf60556f90597df5728908ea58ee}
+      \strng{authorbibnamehash}{5a6fdf60556f90597df5728908ea58ee}
+      \strng{authornamehash}{5a6fdf60556f90597df5728908ea58ee}
+      \strng{authorfullhash}{5a6fdf60556f90597df5728908ea58ee}
+      \strng{authorfullhashraw}{5a6fdf60556f90597df5728908ea58ee}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Hepatology}
+      \field{title}{MELD accurately predicts mortality in patients with alcoholic hepatitis}
+      \field{volume}{41}
+      \field{year}{2005}
+      \field{pages}{353\bibrangedash 358}
+      \range{pages}{6}
+    \endentry
+    \entry{pang2015}{article}{}{}
+      \true{moreauthor}
+      \true{morelabelname}
+      \name{author}{6}{}{%
+        {{hash=aaa081b5d51ed8a29e9b723d6446e877}{%
+           family={Pang},
+           familyi={P\bibinitperiod},
+           given={J.\bibnamedelimi X.},
+           giveni={J\bibinitperiod\bibinitdelim X\bibinitperiod}}}%
+        {{hash=c6b65edb801b6ed92df9292057e55aef}{%
+           family={Ross},
+           familyi={R\bibinitperiod},
+           given={E.},
+           giveni={E\bibinitperiod}}}%
+        {{hash=e994da96dc0bee54e69dbca2ed919d49}{%
+           family={Borman},
+           familyi={B\bibinitperiod},
+           given={M.\bibnamedelimi A.},
+           giveni={M\bibinitperiod\bibinitdelim A\bibinitperiod}}}%
+        {{hash=8a11acf5955591db72e4397d4ebaeaa2}{%
+           family={Zimmer},
+           familyi={Z\bibinitperiod},
+           given={S.},
+           giveni={S\bibinitperiod}}}%
+        {{hash=b2b61e25a8273b15a7305b055093ab7d}{%
+           family={Kaplan},
+           familyi={K\bibinitperiod},
+           given={G.\bibnamedelimi G.},
+           giveni={G\bibinitperiod\bibinitdelim G\bibinitperiod}}}%
+        {{hash=1f7b349311df1f8e2564cb8ac98d884d}{%
+           family={Heitman},
+           familyi={H\bibinitperiod},
+           given={S.\bibnamedelimi J.},
+           giveni={S\bibinitperiod\bibinitdelim J\bibinitperiod}}}%
+      }
+      \strng{namehash}{f5edb2ad428cf6e68f6dfa39245d59d8}
+      \strng{fullhash}{f5edb2ad428cf6e68f6dfa39245d59d8}
+      \strng{fullhashraw}{f5edb2ad428cf6e68f6dfa39245d59d8}
+      \strng{bibnamehash}{f5edb2ad428cf6e68f6dfa39245d59d8}
+      \strng{authorbibnamehash}{f5edb2ad428cf6e68f6dfa39245d59d8}
+      \strng{authornamehash}{f5edb2ad428cf6e68f6dfa39245d59d8}
+      \strng{authorfullhash}{f5edb2ad428cf6e68f6dfa39245d59d8}
+      \strng{authorfullhashraw}{f5edb2ad428cf6e68f6dfa39245d59d8}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Canadian Journal of Gastroenterology and Hepatology}
+      \field{title}{Risk factors for mortality in patients with alcoholic hepatitis and assessment of prognostic models: A population-based study}
+      \field{volume}{29}
+      \field{year}{2015}
+      \field{pages}{131\bibrangedash 138}
+      \range{pages}{8}
+    \endentry
+    \entry{forrest2005}{article}{}{}
+      \true{moreauthor}
+      \true{morelabelname}
+      \name{author}{6}{}{%
+        {{hash=98c93160e2d44aa47023b3a3950c5673}{%
+           family={Forrest},
+           familyi={F\bibinitperiod},
+           given={E.},
+           giveni={E\bibinitperiod}}}%
+        {{hash=62ff1be12221424bd901b2c3d2e868bf}{%
+           family={Evans},
+           familyi={E\bibinitperiod},
+           given={C.},
+           giveni={C\bibinitperiod}}}%
+        {{hash=74f737ba4aca8548b8663e58fce1d70a}{%
+           family={Stewart},
+           familyi={S\bibinitperiod},
+           given={S.},
+           giveni={S\bibinitperiod}}}%
+        {{hash=cd11e30a94f3958bcd2f8a6c9cf887cf}{%
+           family={Phillips},
+           familyi={P\bibinitperiod},
+           given={M.},
+           giveni={M\bibinitperiod}}}%
+        {{hash=3ec2e65ce466199a5bb6727ebe599939}{%
+           family={Oo},
+           familyi={O\bibinitperiod},
+           given={Y.\bibnamedelimi H.},
+           giveni={Y\bibinitperiod\bibinitdelim H\bibinitperiod}}}%
+        {{hash=d4b5ca05790342352bc5a220aefd8786}{%
+           family={McAvoy},
+           familyi={M\bibinitperiod},
+           given={N.},
+           giveni={N\bibinitperiod}}}%
+      }
+      \strng{namehash}{742a063693fb050f7a55c4977a8e4441}
+      \strng{fullhash}{742a063693fb050f7a55c4977a8e4441}
+      \strng{fullhashraw}{742a063693fb050f7a55c4977a8e4441}
+      \strng{bibnamehash}{742a063693fb050f7a55c4977a8e4441}
+      \strng{authorbibnamehash}{742a063693fb050f7a55c4977a8e4441}
+      \strng{authornamehash}{742a063693fb050f7a55c4977a8e4441}
+      \strng{authorfullhash}{742a063693fb050f7a55c4977a8e4441}
+      \strng{authorfullhashraw}{742a063693fb050f7a55c4977a8e4441}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Gut}
+      \field{title}{Analysis of factors predictive of mortality in alcoholic hepatitis and derivation and validation of the Glasgow alcoholic hepatitis score}
+      \field{volume}{54}
+      \field{year}{2005}
+      \field{pages}{1174\bibrangedash 1179}
+      \range{pages}{6}
+    \endentry
+    \entry{kasztelan2013}{article}{}{}
+      \name{author}{4}{}{%
+        {{hash=dff3130c388c87cccecb4110fb0130df}{%
+           family={Kasztelan{-}Szczerbińska},
+           familyi={K\bibinitperiod},
+           given={B.},
+           giveni={B\bibinitperiod}}}%
+        {{hash=f22e35b11f553aa1ce2246e0901adf02}{%
+           family={S{ł}omka},
+           familyi={S\bibinitperiod},
+           given={M.},
+           giveni={M\bibinitperiod}}}%
+        {{hash=8a31d5df83780e7b27c994bce1496dfe}{%
+           family={Celinski},
+           familyi={C\bibinitperiod},
+           given={K.},
+           giveni={K\bibinitperiod}}}%
+        {{hash=c7bdefc45ef08c158449b6b69afeeef9}{%
+           family={Szczerbinski},
+           familyi={S\bibinitperiod},
+           given={M.},
+           giveni={M\bibinitperiod}}}%
+      }
+      \strng{namehash}{09111c8497d052e9c91d56d636953be0}
+      \strng{fullhash}{09111c8497d052e9c91d56d636953be0}
+      \strng{fullhashraw}{09111c8497d052e9c91d56d636953be0}
+      \strng{bibnamehash}{09111c8497d052e9c91d56d636953be0}
+      \strng{authorbibnamehash}{09111c8497d052e9c91d56d636953be0}
+      \strng{authornamehash}{09111c8497d052e9c91d56d636953be0}
+      \strng{authorfullhash}{09111c8497d052e9c91d56d636953be0}
+      \strng{authorfullhashraw}{09111c8497d052e9c91d56d636953be0}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{BioMed Research International}
+      \field{title}{Alkaline phosphatase: The next independent predictor of the poor 90-day outcome in alcoholic hepatitis}
+      \field{volume}{2013}
+      \field{year}{2013}
+      \field{pages}{614081}
+      \range{pages}{1}
+    \endentry
+    \entry{louvet2017}{article}{}{}
+      \true{moreauthor}
+      \true{morelabelname}
+      \name{author}{6}{}{%
+        {{hash=35f223dbd8fbdeb45a1bedefd88fbb86}{%
+           family={Louvet},
+           familyi={L\bibinitperiod},
+           given={A.},
+           giveni={A\bibinitperiod}}}%
+        {{hash=725648bb9df8745e58d83021b6c7b628}{%
+           family={Labreuche},
+           familyi={L\bibinitperiod},
+           given={J.},
+           giveni={J\bibinitperiod}}}%
+        {{hash=d064582c0ce1f43979ba5b53f87f38ed}{%
+           family={Artru},
+           familyi={A\bibinitperiod},
+           given={F.},
+           giveni={F\bibinitperiod}}}%
+        {{hash=91be9bb6324e5653e67f656bf5fd23ca}{%
+           family={Bouthors},
+           familyi={B\bibinitperiod},
+           given={A.},
+           giveni={A\bibinitperiod}}}%
+        {{hash=c2a22808e2c1f2d9fabea34dae77d8c5}{%
+           family={Rolland},
+           familyi={R\bibinitperiod},
+           given={B.},
+           giveni={B\bibinitperiod}}}%
+        {{hash=0f6b25539bcb7440e108a2be10119496}{%
+           family={Saffers},
+           familyi={S\bibinitperiod},
+           given={P.},
+           giveni={P\bibinitperiod}}}%
+      }
+      \strng{namehash}{934a3ef635f3d9a05d64faf9658739f3}
+      \strng{fullhash}{934a3ef635f3d9a05d64faf9658739f3}
+      \strng{fullhashraw}{934a3ef635f3d9a05d64faf9658739f3}
+      \strng{bibnamehash}{934a3ef635f3d9a05d64faf9658739f3}
+      \strng{authorbibnamehash}{934a3ef635f3d9a05d64faf9658739f3}
+      \strng{authornamehash}{934a3ef635f3d9a05d64faf9658739f3}
+      \strng{authorfullhash}{934a3ef635f3d9a05d64faf9658739f3}
+      \strng{authorfullhashraw}{934a3ef635f3d9a05d64faf9658739f3}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Hepatology}
+      \field{title}{Main drivers of outcome differ between short term and long term in severe alcoholic hepatitis: A prospective study}
+      \field{volume}{66}
+      \field{year}{2017}
+      \field{pages}{1464\bibrangedash 1473}
+      \range{pages}{10}
+    \endentry
+    \entry{pitt2021}{article}{}{}
+      \true{moreauthor}
+      \true{morelabelname}
+      \name{author}{6}{}{%
+        {{hash=3048bfaede4e991c97780a8144bb27be}{%
+           family={Pitt},
+           familyi={P\bibinitperiod},
+           given={B.},
+           giveni={B\bibinitperiod}}}%
+        {{hash=41a33d070debdb9478a2d98caf21ad85}{%
+           family={Filippatos},
+           familyi={F\bibinitperiod},
+           given={G.},
+           giveni={G\bibinitperiod}}}%
+        {{hash=ba918edf341e56a7c12476e5821e4515}{%
+           family={Agarwal},
+           familyi={A\bibinitperiod},
+           given={R.},
+           giveni={R\bibinitperiod}}}%
+        {{hash=1b00ef839b248835f57f7a2cc456e2d3}{%
+           family={Anker},
+           familyi={A\bibinitperiod},
+           given={S.\bibnamedelimi D.},
+           giveni={S\bibinitperiod\bibinitdelim D\bibinitperiod}}}%
+        {{hash=373cfc3c95d30255b759448059a4f842}{%
+           family={Bakris},
+           familyi={B\bibinitperiod},
+           given={G.\bibnamedelimi L.},
+           giveni={G\bibinitperiod\bibinitdelim L\bibinitperiod}}}%
+        {{hash=213c58f467b35d9ed6e4caca193074ae}{%
+           family={Rossing},
+           familyi={R\bibinitperiod},
+           given={P.},
+           giveni={P\bibinitperiod}}}%
+      }
+      \strng{namehash}{27f08ad172fa32081aef70f390f1e4f0}
+      \strng{fullhash}{27f08ad172fa32081aef70f390f1e4f0}
+      \strng{fullhashraw}{27f08ad172fa32081aef70f390f1e4f0}
+      \strng{bibnamehash}{27f08ad172fa32081aef70f390f1e4f0}
+      \strng{authorbibnamehash}{27f08ad172fa32081aef70f390f1e4f0}
+      \strng{authornamehash}{27f08ad172fa32081aef70f390f1e4f0}
+      \strng{authorfullhash}{27f08ad172fa32081aef70f390f1e4f0}
+      \strng{authorfullhashraw}{27f08ad172fa32081aef70f390f1e4f0}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{New England Journal of Medicine}
+      \field{title}{Cardiovascular events with finerenone in kidney disease and type 2 diabetes}
+      \field{volume}{385}
+      \field{year}{2021}
+      \field{pages}{2252\bibrangedash 2263}
+      \range{pages}{12}
+    \endentry
+    \entry{bakris2020}{article}{}{}
+      \true{moreauthor}
+      \true{morelabelname}
+      \name{author}{6}{}{%
+        {{hash=373cfc3c95d30255b759448059a4f842}{%
+           family={Bakris},
+           familyi={B\bibinitperiod},
+           given={G.\bibnamedelimi L.},
+           giveni={G\bibinitperiod\bibinitdelim L\bibinitperiod}}}%
+        {{hash=ba918edf341e56a7c12476e5821e4515}{%
+           family={Agarwal},
+           familyi={A\bibinitperiod},
+           given={R.},
+           giveni={R\bibinitperiod}}}%
+        {{hash=1b00ef839b248835f57f7a2cc456e2d3}{%
+           family={Anker},
+           familyi={A\bibinitperiod},
+           given={S.\bibnamedelimi D.},
+           giveni={S\bibinitperiod\bibinitdelim D\bibinitperiod}}}%
+        {{hash=3048bfaede4e991c97780a8144bb27be}{%
+           family={Pitt},
+           familyi={P\bibinitperiod},
+           given={B.},
+           giveni={B\bibinitperiod}}}%
+        {{hash=29747313d64b66497abcb0cb7fc07121}{%
+           family={Ruilope},
+           familyi={R\bibinitperiod},
+           given={L.\bibnamedelimi M.},
+           giveni={L\bibinitperiod\bibinitdelim M\bibinitperiod}}}%
+        {{hash=213c58f467b35d9ed6e4caca193074ae}{%
+           family={Rossing},
+           familyi={R\bibinitperiod},
+           given={P.},
+           giveni={P\bibinitperiod}}}%
+      }
+      \strng{namehash}{a9c427ea600305337357690403e96f3d}
+      \strng{fullhash}{a9c427ea600305337357690403e96f3d}
+      \strng{fullhashraw}{a9c427ea600305337357690403e96f3d}
+      \strng{bibnamehash}{a9c427ea600305337357690403e96f3d}
+      \strng{authorbibnamehash}{a9c427ea600305337357690403e96f3d}
+      \strng{authornamehash}{a9c427ea600305337357690403e96f3d}
+      \strng{authorfullhash}{a9c427ea600305337357690403e96f3d}
+      \strng{authorfullhashraw}{a9c427ea600305337357690403e96f3d}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{New England Journal of Medicine}
+      \field{title}{Effect of finerenone on chronic kidney disease outcomes in type 2 diabetes}
+      \field{volume}{383}
+      \field{year}{2020}
+      \field{pages}{2219\bibrangedash 2229}
+      \range{pages}{11}
+    \endentry
+    \entry{sprintrl2015}{article}{}{}
+      \name{author}{1}{}{%
+        {{hash=1c9a441a3a011261b43e8a6cfca74f21}{%
+           family={{SPRINT Research Group}},
+           familyi={S\bibinitperiod}}}%
+      }
+      \strng{namehash}{1c9a441a3a011261b43e8a6cfca74f21}
+      \strng{fullhash}{1c9a441a3a011261b43e8a6cfca74f21}
+      \strng{fullhashraw}{1c9a441a3a011261b43e8a6cfca74f21}
+      \strng{bibnamehash}{1c9a441a3a011261b43e8a6cfca74f21}
+      \strng{authorbibnamehash}{1c9a441a3a011261b43e8a6cfca74f21}
+      \strng{authornamehash}{1c9a441a3a011261b43e8a6cfca74f21}
+      \strng{authorfullhash}{1c9a441a3a011261b43e8a6cfca74f21}
+      \strng{authorfullhashraw}{1c9a441a3a011261b43e8a6cfca74f21}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{New England Journal of Medicine}
+      \field{title}{A randomized trial of intensive versus standard blood-pressure control}
+      \field{volume}{373}
+      \field{year}{2015}
+      \field{pages}{2103\bibrangedash 2116}
+      \range{pages}{14}
+    \endentry
+    \entry{hsu2023}{article}{}{}
+      \true{moreauthor}
+      \true{morelabelname}
+      \name{author}{6}{}{%
+        {{hash=77a14cd25788df9bacb6dbb15fbf5692}{%
+           family={Hsu},
+           familyi={H\bibinitperiod},
+           given={C.\bibnamedelimi C.},
+           giveni={C\bibinitperiod\bibinitdelim C\bibinitperiod}}}%
+        {{hash=903c37bd5ec2bdcdb177b18019f6ddf4}{%
+           family={Dodge},
+           familyi={D\bibinitperiod},
+           given={J.\bibnamedelimi L.},
+           giveni={J\bibinitperiod\bibinitdelim L\bibinitperiod}}}%
+        {{hash=7baaf8fd75d44ba9802aff296949cae3}{%
+           family={Weinberg},
+           familyi={W\bibinitperiod},
+           given={E.},
+           giveni={E\bibinitperiod}}}%
+        {{hash=aa73afd627c6d61d6073e9f428030a1e}{%
+           family={Im},
+           familyi={I\bibinitperiod},
+           given={G.},
+           giveni={G\bibinitperiod}}}%
+        {{hash=f0498b363d108c3ca83ae0b0bdb70d77}{%
+           family={Ko},
+           familyi={K\bibinitperiod},
+           given={J.},
+           giveni={J\bibinitperiod}}}%
+        {{hash=0ffdd96a5b025596dc520610fa0bca54}{%
+           family={Davis},
+           familyi={D\bibinitperiod},
+           given={W.},
+           giveni={W\bibinitperiod}}}%
+      }
+      \strng{namehash}{41b1e1bea369bc24dd41862f56d5bd07}
+      \strng{fullhash}{41b1e1bea369bc24dd41862f56d5bd07}
+      \strng{fullhashraw}{41b1e1bea369bc24dd41862f56d5bd07}
+      \strng{bibnamehash}{41b1e1bea369bc24dd41862f56d5bd07}
+      \strng{authorbibnamehash}{41b1e1bea369bc24dd41862f56d5bd07}
+      \strng{authornamehash}{41b1e1bea369bc24dd41862f56d5bd07}
+      \strng{authorfullhash}{41b1e1bea369bc24dd41862f56d5bd07}
+      \strng{authorfullhashraw}{41b1e1bea369bc24dd41862f56d5bd07}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Hepatology}
+      \field{title}{Multicentered study of patient outcomes after declined for early liver transplantation in severe alcohol-associated hepatitis}
+      \field{volume}{77}
+      \field{year}{2023}
+      \field{pages}{1253\bibrangedash 1262}
+      \range{pages}{10}
+    \endentry
+    \entry{musto2022}{article}{}{}
+      \name{author}{6}{}{%
+        {{hash=e83921329f2dfde54bdf955be6b2cd87}{%
+           family={Musto},
+           familyi={M\bibinitperiod},
+           given={J.},
+           giveni={J\bibinitperiod}}}%
+        {{hash=d34275dce9a4e1adbac90318ae85cb9d}{%
+           family={Stanfield},
+           familyi={S\bibinitperiod},
+           given={D.},
+           giveni={D\bibinitperiod}}}%
+        {{hash=45a75be63be41023337d5dbc1783c7a4}{%
+           family={Ley},
+           familyi={L\bibinitperiod},
+           given={D.},
+           giveni={D\bibinitperiod}}}%
+        {{hash=1ae6657c286480d9e786d5989d978f14}{%
+           family={Lucey},
+           familyi={L\bibinitperiod},
+           given={M.\bibnamedelimi R.},
+           giveni={M\bibinitperiod\bibinitdelim R\bibinitperiod}}}%
+        {{hash=62b6b998b967ad6c264164c73cc37087}{%
+           family={Eickhoff},
+           familyi={E\bibinitperiod},
+           given={J.},
+           giveni={J\bibinitperiod}}}%
+        {{hash=0a25042f592b1e9393b48ae1044ae02c}{%
+           family={Rice},
+           familyi={R\bibinitperiod},
+           given={J.\bibnamedelimi P.},
+           giveni={J\bibinitperiod\bibinitdelim P\bibinitperiod}}}%
+      }
+      \strng{namehash}{6b1b4ebd114251bb22aee256eece95e2}
+      \strng{fullhash}{6b1b4ebd114251bb22aee256eece95e2}
+      \strng{fullhashraw}{6b1b4ebd114251bb22aee256eece95e2}
+      \strng{bibnamehash}{6b1b4ebd114251bb22aee256eece95e2}
+      \strng{authorbibnamehash}{6b1b4ebd114251bb22aee256eece95e2}
+      \strng{authornamehash}{6b1b4ebd114251bb22aee256eece95e2}
+      \strng{authorfullhash}{6b1b4ebd114251bb22aee256eece95e2}
+      \strng{authorfullhashraw}{6b1b4ebd114251bb22aee256eece95e2}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Hepatology}
+      \field{title}{Recovery and outcomes of patients denied early liver transplantation for severe alcohol-associated hepatitis}
+      \field{volume}{75}
+      \field{year}{2022}
+      \field{pages}{104\bibrangedash 114}
+      \range{pages}{11}
+    \endentry
+    \entry{hofer2023}{article}{}{}
+      \true{moreauthor}
+      \true{morelabelname}
+      \name{author}{6}{}{%
+        {{hash=70f111fce20d41b7335424887bc22da2}{%
+           family={Hofer},
+           familyi={H\bibinitperiod},
+           given={B.\bibnamedelimi S.},
+           giveni={B\bibinitperiod\bibinitdelim S\bibinitperiod}}}%
+        {{hash=3173124691635b5acac97041c01450ae}{%
+           family={Simbrunner},
+           familyi={S\bibinitperiod},
+           given={B.},
+           giveni={B\bibinitperiod}}}%
+        {{hash=787b7a971ac4a0b39b117eca10080d27}{%
+           family={Hartl},
+           familyi={H\bibinitperiod},
+           given={L.},
+           giveni={L\bibinitperiod}}}%
+        {{hash=e3f9f1f2ab8554545a25acc689f2f141}{%
+           family={Jachs},
+           familyi={J\bibinitperiod},
+           given={M.},
+           giveni={M\bibinitperiod}}}%
+        {{hash=e90e4bfa16cb4ae28b22b88271aa5931}{%
+           family={Balcar},
+           familyi={B\bibinitperiod},
+           given={L.},
+           giveni={L\bibinitperiod}}}%
+        {{hash=580a3a7d2c79085837d94237b373a16f}{%
+           family={Paternostro},
+           familyi={P\bibinitperiod},
+           given={R.},
+           giveni={R\bibinitperiod}}}%
+      }
+      \strng{namehash}{a109ea3b77bbd298ff7b967325c8b1eb}
+      \strng{fullhash}{a109ea3b77bbd298ff7b967325c8b1eb}
+      \strng{fullhashraw}{a109ea3b77bbd298ff7b967325c8b1eb}
+      \strng{bibnamehash}{a109ea3b77bbd298ff7b967325c8b1eb}
+      \strng{authorbibnamehash}{a109ea3b77bbd298ff7b967325c8b1eb}
+      \strng{authornamehash}{a109ea3b77bbd298ff7b967325c8b1eb}
+      \strng{authorfullhash}{a109ea3b77bbd298ff7b967325c8b1eb}
+      \strng{authorfullhashraw}{a109ea3b77bbd298ff7b967325c8b1eb}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Liver International}
+      \field{title}{Hepatic recompensation according to Baveno VII criteria is linked to a significant survival benefit in decompensated alcohol-related cirrhosis}
+      \field{volume}{43}
+      \field{year}{2023}
+      \field{pages}{2220\bibrangedash 2231}
+      \range{pages}{12}
+    \endentry
+    \entry{jophlin2024}{article}{}{}
+      \true{moreauthor}
+      \true{morelabelname}
+      \name{author}{6}{}{%
+        {{hash=75f37ad606322e8ea8e301c8dabe163a}{%
+           family={Jophlin},
+           familyi={J\bibinitperiod},
+           given={L.\bibnamedelimi L.},
+           giveni={L\bibinitperiod\bibinitdelim L\bibinitperiod}}}%
+        {{hash=c35603fa953681add9c728423ee35fc2}{%
+           family={Singal},
+           familyi={S\bibinitperiod},
+           given={A.\bibnamedelimi K.},
+           giveni={A\bibinitperiod\bibinitdelim K\bibinitperiod}}}%
+        {{hash=6b2a136b9040269550bdaf646f0f2feb}{%
+           family={Bataller},
+           familyi={B\bibinitperiod},
+           given={R.},
+           giveni={R\bibinitperiod}}}%
+        {{hash=d66e98ad66db3738fcfac9197ada869c}{%
+           family={Wong},
+           familyi={W\bibinitperiod},
+           given={R.\bibnamedelimi J.},
+           giveni={R\bibinitperiod\bibinitdelim J\bibinitperiod}}}%
+        {{hash=be06a640c69436ec2d686d18693440e8}{%
+           family={Sauer},
+           familyi={S\bibinitperiod},
+           given={B.\bibnamedelimi G.},
+           giveni={B\bibinitperiod\bibinitdelim G\bibinitperiod}}}%
+        {{hash=2684088a8980da4da6768134075f7c28}{%
+           family={Terrault},
+           familyi={T\bibinitperiod},
+           given={N.\bibnamedelimi A.},
+           giveni={N\bibinitperiod\bibinitdelim A\bibinitperiod}}}%
+      }
+      \strng{namehash}{5bdc1694d7bad558d4736acdda7ad895}
+      \strng{fullhash}{5bdc1694d7bad558d4736acdda7ad895}
+      \strng{fullhashraw}{5bdc1694d7bad558d4736acdda7ad895}
+      \strng{bibnamehash}{5bdc1694d7bad558d4736acdda7ad895}
+      \strng{authorbibnamehash}{5bdc1694d7bad558d4736acdda7ad895}
+      \strng{authornamehash}{5bdc1694d7bad558d4736acdda7ad895}
+      \strng{authorfullhash}{5bdc1694d7bad558d4736acdda7ad895}
+      \strng{authorfullhashraw}{5bdc1694d7bad558d4736acdda7ad895}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{American Journal of Gastroenterology}
+      \field{title}{ACG clinical guideline: Alcohol-associated liver disease}
+      \field{volume}{119}
+      \field{year}{2024}
+      \field{pages}{30\bibrangedash 54}
+      \range{pages}{25}
+    \endentry
+  \enddatalist
+\endrefsection
+\endinput
+

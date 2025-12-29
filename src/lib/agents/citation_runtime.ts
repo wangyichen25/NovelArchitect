@@ -100,6 +100,8 @@ export async function runCitationWorkflow(
         // but NOT unverified ones from the rest of the manuscript.
         const generatorContext = await runtime.buildContext(currentManuscript, {
             sentence_citation_target: target.sentence_citation_target,
+            context_before_citation_target: target.context_before_citation_target || '',
+            context_after_citation_target: target.context_after_citation_target || '',
             reason_citation_target: target.reason_citation_target,
             section_title_citation_target: target.section_title_citation_target,
             evidence_type_citation_target: target.evidence_type_citation_target,

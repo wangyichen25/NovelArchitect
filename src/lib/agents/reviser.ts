@@ -4,10 +4,11 @@
 
 import { AgentRuntime } from './runtime';
 import { resolveVariables, formatArrayAsMarkdown } from './variables';
-import { parseJSON, validateKeys } from './parser';
+import { validateKeys } from './parser';
 import { REVISER_SYSTEM_PROMPT, REVISER_PROMPT } from './prompts';
 import { AgentContext, ReviserOutput } from './types';
 import Fuse from 'fuse.js';
+import { executeWithJSONRetry } from './json_retry';
 
 /**
  * Apply reviser operations to the manuscript using fuzzy matching.
@@ -101,17 +102,18 @@ export async function runReviser(
     // Resolve the prompt with variables
     const userPrompt = resolveVariables(REVISER_PROMPT, contextWithFormatted);
 
-    // Execute agent (offline acceptable - editing existing text)
-    const response = await runtime.executeAgent(
-        REVISER_SYSTEM_PROMPT,
-        userPrompt,
-        false, // requiresOnline
+    // Execute agent (online to enable affiliation verification and standardization) with JSON parse retry
+    const { output } = await executeWithJSONRetry<ReviserOutput>(
+        runtime,
+        () => runtime.executeAgent(
+            REVISER_SYSTEM_PROMPT,
+            userPrompt,
+            true, // requiresOnline - enables internet access for affiliation lookups
+            'Reviser'
+        ),
         'Reviser'
     );
-
-    // Parse JSON output
-    const output = parseJSON<ReviserOutput>(response);
-    validateKeys(output, ['status', 'rationale', 'operations']);
+    validateKeys(output, ['status', 'operations']);
 
     // Apply operations to manuscript
     const updatedManuscript = applyReviseOperations(currentManuscript, output.operations);
@@ -119,7 +121,7 @@ export async function runReviser(
     // Add to history
     await runtime.addHistory(
         'revise_manuscript',
-        `Applied ${output.operations.length} revisions. Status: ${output.status}. ${output.rationale}`,
+        `Applied ${output.operations.length} revisions. Status: ${output.status}. ${output.rationale || ''}`,
         true
     );
 

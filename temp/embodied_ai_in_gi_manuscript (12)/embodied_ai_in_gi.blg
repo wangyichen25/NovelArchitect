@@ -1,0 +1,15 @@
+[0] Config.pm:328> INFO - This is Biber 2.21
+[0] Config.pm:331> INFO - Logfile is 'embodied_ai_in_gi.blg'
+[38] biber:342> INFO - === Fri Dec 26, 2025, 17:08:41
+[48] Biber.pm:421> INFO - Reading 'embodied_ai_in_gi.bcf'
+[95] Biber.pm:1002> INFO - Found 16 citekeys in bib section 0
+[103] Biber.pm:4487> INFO - Processing section 0
+[108] Biber.pm:4678> INFO - Looking for bibtex file 'embodied_ai_in_gi.bib' for section 0
+[130] bibtex.pm:1713> INFO - LaTeX decoding ...
+[138] bibtex.pm:1519> INFO - Found BibTeX data source 'embodied_ai_in_gi.bib'
+[235] UCollate.pm:68> INFO - Overriding locale 'en-US' defaults 'variable = shifted' with 'variable = non-ignorable'
+[236] UCollate.pm:68> INFO - Overriding locale 'en-US' defaults 'normalization = NFD' with 'normalization = prenormalized'
+[236] Biber.pm:4307> INFO - Sorting list 'none/global//global/global/global' of type 'entry' with template 'none' and locale 'en-US'
+[236] Biber.pm:4313> INFO - No sort tailoring available for locale 'en-US'
+[244] bbl.pm:676> INFO - Writing 'embodied_ai_in_gi.bbl' with encoding 'UTF-8'
+[250] bbl.pm:779> INFO - Output to embodied_ai_in_gi.bbl

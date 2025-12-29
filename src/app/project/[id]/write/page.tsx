@@ -10,8 +10,9 @@ import { useProjectStore } from "@/hooks/useProject";
 import { Scene, Act, Chapter, ProjectImage } from "@/lib/db/schema";
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from "@/components/ui/button";
-import { Plus, Save, ChevronLeft, ChevronRight, Sparkles, Loader2, Settings } from "lucide-react";
+import { Plus, Save, ChevronLeft, ChevronRight, Sparkles, Loader2, Settings, GripVertical } from "lucide-react";
 import { SceneSettingsDialog } from "@/components/writer/SceneSettingsDialog";
+import { BottomPanel } from "@/components/writer/BottomPanel";
 
 
 import { AIWorkspace } from "@/components/writer/AIWorkspace";
@@ -28,6 +29,12 @@ export default function WritePage() {
     const [isAIWorkspaceOpen, setIsAIWorkspaceOpen] = useState(false);
     const [remoteTrigger, setRemoteTrigger] = useState(0);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+    // Sidebar resizing state
+    const [sidebarWidth, setSidebarWidth] = useState(400);
+    const isSidebarDragging = useRef(false);
+    const sidebarStartX = useRef(0);
+    const sidebarStartWidth = useRef(0);
 
     // Local state for real-time text sync with AI Workspace
     const [currentContent, setCurrentContent] = useState<any>(null);
@@ -246,6 +253,38 @@ export default function WritePage() {
         [activeSceneId]
     );
 
+    // Sidebar resize effect
+    useEffect(() => {
+        const handleMouseMove = (e: MouseEvent) => {
+            if (!isSidebarDragging.current) return;
+            const deltaX = sidebarStartX.current - e.clientX;
+            const newWidth = Math.min(800, Math.max(280, sidebarStartWidth.current + deltaX));
+            setSidebarWidth(newWidth);
+        };
+
+        const handleMouseUp = () => {
+            isSidebarDragging.current = false;
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+        };
+
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+        return () => {
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, []);
+
+    const handleSidebarMouseDown = useCallback((e: React.MouseEvent) => {
+        isSidebarDragging.current = true;
+        sidebarStartX.current = e.clientX;
+        sidebarStartWidth.current = sidebarWidth;
+        document.body.style.cursor = 'ew-resize';
+        document.body.style.userSelect = 'none';
+        e.preventDefault();
+    }, [sidebarWidth]);
+
     return (
         <div className="flex flex-col h-full bg-background relative overflow-hidden">
             {/* Simple Scene Toolbar */}
@@ -330,47 +369,67 @@ export default function WritePage() {
             </div>
 
             <div className="flex-1 flex overflow-hidden">
-                <div className="flex-1 overflow-y-auto p-4">
-                    {/* Key prop ensures editor remounts when scene changes */}
-                    {activeScene && (
-                        <NovelEditor
-                            ref={editorRef}
-                            key={activeScene.id}
-                            initialContent={activeScene.content}
-                            content={currentContent}
-                            remoteUpdateTrigger={remoteTrigger}
-                            onUpdate={handleUpdate}
-                            sceneId={activeScene.id}
-                        />
-                    )}
+                <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+                    <div className="flex-1 overflow-y-auto p-4 flex flex-col">
+                        {/* Key prop ensures editor remounts when scene changes */}
+                        <div className="flex-1 overflow-y-auto">
+                            {activeScene && (
+                                <NovelEditor
+                                    ref={editorRef}
+                                    key={activeScene.id}
+                                    initialContent={activeScene.content}
+                                    content={currentContent}
+                                    remoteUpdateTrigger={remoteTrigger}
+                                    onUpdate={handleUpdate}
+                                    sceneId={activeScene.id}
+                                />
+                            )}
+                        </div>
+                    </div>
+                    {/* Global Bottom Panel for Logs */}
+                    <BottomPanel />
                 </div>
 
                 {/* AI Workspace Panel */}
                 {isAIWorkspaceOpen && (
-                    <AIWorkspace
-                        className="w-1/3 min-w-[300px] border-l shadow-xl z-10"
-                        onClose={() => setIsAIWorkspaceOpen(false)}
-                        currentManuscript={extractTextFromContent(currentContent ?? activeScene?.content)}
-                        onUpdateManuscript={(text) => {
-                            // Convert plain text back to ProseMirror JSON format
-                            const paragraphs = text.split('\n\n').filter(p => p.trim());
-                            const content = {
-                                type: 'doc',
-                                content: paragraphs.map(para => ({
-                                    type: 'paragraph',
-                                    content: [{
-                                        type: 'text',
-                                        text: para
-                                    }]
-                                }))
-                            };
-                            handleUpdate(content);
-                            setRemoteTrigger(prev => prev + 1);
-                        }}
-                        sceneId={activeSceneId || ""}
-                        agentState={agentState}
-                        novelId={novelId}
-                    />
+                    <div
+                        className="relative flex h-full shrink-0"
+                        style={{ width: `${sidebarWidth}px` }}
+                    >
+                        {/* Resize Handle */}
+                        <div
+                            className="absolute left-0 top-0 bottom-0 w-1 cursor-ew-resize hover:bg-primary/30 transition-colors group z-20"
+                            onMouseDown={handleSidebarMouseDown}
+                        >
+                            <div className="absolute top-1/2 -translate-y-1/2 -left-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <GripVertical className="h-6 w-3 text-muted-foreground" />
+                            </div>
+                        </div>
+                        <AIWorkspace
+                            className="flex-1 border-l shadow-xl z-10"
+                            onClose={() => setIsAIWorkspaceOpen(false)}
+                            currentManuscript={extractTextFromContent(currentContent ?? activeScene?.content)}
+                            onUpdateManuscript={(text) => {
+                                // Convert plain text back to ProseMirror JSON format
+                                const paragraphs = text.split('\n\n').filter(p => p.trim());
+                                const content = {
+                                    type: 'doc',
+                                    content: paragraphs.map(para => ({
+                                        type: 'paragraph',
+                                        content: [{
+                                            type: 'text',
+                                            text: para
+                                        }]
+                                    }))
+                                };
+                                handleUpdate(content);
+                                setRemoteTrigger(prev => prev + 1);
+                            }}
+                            sceneId={activeSceneId || ""}
+                            agentState={agentState}
+                            novelId={novelId}
+                        />
+                    </div>
                 )}
             </div>
 

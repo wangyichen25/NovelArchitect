@@ -4,9 +4,10 @@
 
 import { AgentRuntime } from './runtime';
 import { resolveVariables } from './variables';
-import { parseJSON, validateKeys, parseNumber } from './parser';
+import { validateKeys, parseNumber } from './parser';
 import { CRITIC_SYSTEM_PROMPT, CRITIC_PROMPT } from './prompts';
 import { AgentContext, CriticOutput } from './types';
+import { executeWithJSONRetry } from './json_retry';
 
 /**
  * Execute the Critic agent to review the manuscript.
@@ -21,16 +22,17 @@ export async function runCritic(
     // Resolve the prompt with variables
     const userPrompt = resolveVariables(CRITIC_PROMPT, context);
 
-    // Execute agent (offline acceptable - reviewing existing text)
-    const response = await runtime.executeAgent(
-        CRITIC_SYSTEM_PROMPT,
-        userPrompt,
-        false, // requiresOnline
+    // Execute agent (offline acceptable - reviewing existing text) with JSON parse retry
+    const { output } = await executeWithJSONRetry<CriticOutput>(
+        runtime,
+        () => runtime.executeAgent(
+            CRITIC_SYSTEM_PROMPT,
+            userPrompt,
+            false, // requiresOnline
+            'Critic'
+        ),
         'Critic'
     );
-
-    // Parse JSON output
-    const output = parseJSON<CriticOutput>(response);
     validateKeys(output, ['critic_summary', 'score', 'action_items']);
 
     // Ensure score is a number
@@ -40,12 +42,6 @@ export async function runCritic(
     if (!Array.isArray(output.action_items)) {
         output.action_items = [];
     }
-
-    // Increment pass index
-    const currentPassIndex = context.pass_index || 0;
-    await runtime.updateState({
-        passIndex: currentPassIndex + 1
-    });
 
     // Add to history
     await runtime.addHistory(

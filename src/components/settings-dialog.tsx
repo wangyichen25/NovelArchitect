@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useProjectStore } from "@/hooks/useProject";
 import { createClient } from "@/lib/supabase/client"; // [NEW] Sync support
-import { Settings, Lock, Key, CheckCircle, Star, Trash2, ChevronDown } from "lucide-react";
+import { Settings, Lock, Key, CheckCircle, Star, Trash2, ChevronDown, Plus, FileText, X } from "lucide-react";
 import {
     Dialog,
     DialogContent,
@@ -28,6 +28,12 @@ export default function SettingsDialog() {
     const [isPresetOpen, setIsPresetOpen] = useState(false); // Helper for custom dropdown
     const [isSaved, setIsSaved] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+
+    // Writing Examples (Sample Papers) State
+    const [writingExamples, setWritingExamples] = useState<{ id: string; name: string; content: string }[]>([]);
+    const [showAddExample, setShowAddExample] = useState(false);
+    const [newExampleName, setNewExampleName] = useState("");
+    const [newExampleContent, setNewExampleContent] = useState("");
 
     // [NEW] Attempt to get current novel context just for UI labeling, not logic
     const params = useParams();
@@ -78,6 +84,12 @@ export default function SettingsDialog() {
                         // Now we will just use local storage mostly, but if we sync, it will be plain text or we skip syncing keys?
                         // The previous code synced `apiKey` (encrypted). Now it will sync `apiKey` (plain).
                     }
+
+                    // Load writing examples
+                    if (s.writing_examples && Array.isArray(s.writing_examples)) {
+                        setWritingExamples(s.writing_examples);
+                    }
+
                     setIsLoading(false);
                     return; // Loaded from Cloud
                 }
@@ -94,6 +106,19 @@ export default function SettingsDialog() {
             if (currentProvider !== 'ollama') {
                 const storedKey = localStorage.getItem(`novel-architect-key-${currentProvider}`);
                 if (storedKey) setApiKey(storedKey);
+            }
+
+            // Load writing examples from localStorage fallback
+            const storedExamples = localStorage.getItem('novel-architect-writing-examples');
+            if (storedExamples) {
+                try {
+                    const parsed = JSON.parse(storedExamples);
+                    if (Array.isArray(parsed)) {
+                        setWritingExamples(parsed);
+                    }
+                } catch (e) {
+                    console.error('Failed to parse stored writing examples:', e);
+                }
             }
         } catch (e) {
             console.error("Failed to load settings:", e);
@@ -139,6 +164,8 @@ export default function SettingsDialog() {
             // Update LocalStorage (Global)
             localStorage.setItem(`novel-architect-model-${provider}`, model);
             localStorage.setItem('novel-architect-provider', provider);
+            // Save writing examples to localStorage as fallback
+            localStorage.setItem('novel-architect-writing-examples', JSON.stringify(writingExamples));
 
             // Update Global Store for immediate UI reaction
             useProjectStore.getState().setActiveAiModel(model);
@@ -158,6 +185,7 @@ export default function SettingsDialog() {
                     saved_models: modelPresets, // Persist bookmarks
                     model, // Keep legacy field for now
                     apiKey: provider !== 'ollama' ? apiKey : undefined, // Syncing plain key... risky but requested.
+                    writing_examples: writingExamples, // [NEW] Persist writing examples
                     lastModified: Date.now()
                 };
 
@@ -329,6 +357,126 @@ export default function SettingsDialog() {
                             />
                         </div>
                     )}
+
+                    {/* Writing Examples (Sample Papers) Section */}
+                    <div className="border-t pt-4 mt-4">
+                        <div className="flex items-center justify-between mb-3">
+                            <label className="text-sm font-medium flex items-center gap-2">
+                                <FileText className="h-4 w-4" />
+                                Writing Examples
+                            </label>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setShowAddExample(true)}
+                                disabled={isLoading}
+                            >
+                                <Plus className="h-3 w-3 mr-1" />
+                                Add
+                            </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground mb-3">
+                            Sample papers for AI format guidance. Select one when running AI Write.
+                        </p>
+
+                        {writingExamples.length === 0 && (
+                            <div className="text-sm text-muted-foreground italic py-4 text-center border rounded-md">
+                                No writing examples yet. Add a sample paper to guide AI formatting.
+                            </div>
+                        )}
+
+                        {writingExamples.length > 0 && (
+                            <div className="space-y-2 max-h-32 overflow-y-auto">
+                                {writingExamples.map((ex) => (
+                                    <div key={ex.id} className="flex items-center justify-between p-2 rounded-md border bg-muted/30 group">
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-sm font-medium truncate">{ex.name}</div>
+                                            <div className="text-xs text-muted-foreground truncate">
+                                                {ex.content.length.toLocaleString()} characters
+                                            </div>
+                                        </div>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            onClick={() => {
+                                                setWritingExamples(writingExamples.filter(e => e.id !== ex.id));
+                                            }}
+                                        >
+                                            <Trash2 className="h-3 w-3 text-destructive" />
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Add Example Modal */}
+                        {showAddExample && (
+                            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                                <div className="bg-background rounded-lg p-6 w-full max-w-2xl max-h-[80vh] flex flex-col shadow-xl">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h3 className="font-semibold">Add Writing Example</h3>
+                                        <Button variant="ghost" size="icon" onClick={() => {
+                                            setShowAddExample(false);
+                                            setNewExampleName("");
+                                            setNewExampleContent("");
+                                        }}>
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                    <div className="space-y-4 flex-1 overflow-hidden flex flex-col">
+                                        <div>
+                                            <label className="text-sm font-medium">Name</label>
+                                            <Input
+                                                value={newExampleName}
+                                                onChange={(e) => setNewExampleName(e.target.value)}
+                                                placeholder="e.g., NEJM Original Article"
+                                                className="mt-1"
+                                            />
+                                        </div>
+                                        <div className="flex-1 flex flex-col min-h-0">
+                                            <label className="text-sm font-medium">Content</label>
+                                            <textarea
+                                                value={newExampleContent}
+                                                onChange={(e) => setNewExampleContent(e.target.value)}
+                                                placeholder="Paste the full text of a sample paper here..."
+                                                className="mt-1 flex-1 w-full p-2 rounded-md border text-sm bg-transparent resize-none min-h-[200px]"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
+                                        <Button variant="outline" onClick={() => {
+                                            setShowAddExample(false);
+                                            setNewExampleName("");
+                                            setNewExampleContent("");
+                                        }}>
+                                            Cancel
+                                        </Button>
+                                        <Button
+                                            onClick={() => {
+                                                if (!newExampleName.trim() || !newExampleContent.trim()) {
+                                                    alert("Please provide both a name and content.");
+                                                    return;
+                                                }
+                                                const newExample = {
+                                                    id: crypto.randomUUID(),
+                                                    name: newExampleName.trim(),
+                                                    content: newExampleContent.trim()
+                                                };
+                                                setWritingExamples([...writingExamples, newExample]);
+                                                setShowAddExample(false);
+                                                setNewExampleName("");
+                                                setNewExampleContent("");
+                                            }}
+                                            disabled={!newExampleName.trim() || !newExampleContent.trim()}
+                                        >
+                                            Add Example
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
                 <DialogFooter>
                     <Button onClick={handleSave} disabled={isLoading}>

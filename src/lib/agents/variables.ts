@@ -118,6 +118,11 @@ export function buildAgentContext(
     // Calculate word count (exclude inline citations)
     const wordCount = countWordsExcludingCitations(currentManuscript);
 
+    // Calculate main text word count (content within <main_text>...</main_text> tags)
+    const mainTextMatch = currentManuscript.match(/<main_text>([\s\S]*?)<\/main_text>/);
+    const mainTextContent = mainTextMatch ? mainTextMatch[1] : '';
+    const mainTextWordCount = countWordsExcludingCitations(mainTextContent);
+
     // Extract existing citations (simple search for @article, @book, etc.)
     const citationMatches = currentManuscript.match(/@\w+\{[^}]+\}/g) || [];
     const existingCitations = citationMatches.join('\n');
@@ -138,6 +143,7 @@ export function buildAgentContext(
             : 'No previous actions',
         has_format_guidance: Boolean(state.formatGuidance),
         manuscript_word_count: wordCount,
+        main_text_word_count: mainTextWordCount,
         existing_citations: existingCitations,
 
         // Agent Inputs (Accumulating)

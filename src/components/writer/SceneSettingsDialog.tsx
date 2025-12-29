@@ -93,6 +93,14 @@ export function SceneSettingsDialog({
         }
     };
 
+    const handleRemoveImage = async (id: string) => {
+        setImages(prev => {
+            const next = prev.filter(img => img.id !== id);
+            void onUpdateImages(next);
+            return next;
+        });
+    };
+
     const handleDelete = async () => {
         if (!confirm("Are you sure you want to delete this scene? This action cannot be undone.")) {
             return;
@@ -145,7 +153,7 @@ export function SceneSettingsDialog({
                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-2">
                                         <div className="flex justify-end">
                                             <button
-                                                onClick={() => setImages(prev => prev.filter(i => i.id !== img.id))}
+                                                onClick={() => void handleRemoveImage(img.id)}
                                                 className="text-white hover:text-red-400 p-1"
                                                 title="Delete"
                                             >
@@ -218,14 +226,14 @@ export function SceneSettingsDialog({
                 </DialogFooter>
             </DialogContent>
 
-            {/* Image Preview Overlay */}
+            {/* Image Preview Overlay (non-blocking) */}
             {hoveredImage && typeof document !== 'undefined' && createPortal(
-                <div className="fixed inset-0 z-[100] pointer-events-none flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="relative max-w-[90vw] max-h-[90vh] p-2 bg-background rounded-lg shadow-2xl border">
+                <div className="fixed bottom-4 right-4 z-[60] pointer-events-none animate-in fade-in duration-200">
+                    <div className="bg-background/95 border rounded-md shadow-2xl p-3 max-w-[640px] max-h-[480px] pointer-events-none">
                         <img
                             src={hoveredImage}
                             alt="Preview"
-                            className="max-w-full max-h-[85vh] object-contain rounded"
+                            className="max-w-full max-h-[420px] object-contain rounded pointer-events-none"
                         />
                     </div>
                 </div>,
@@ -234,4 +242,3 @@ export function SceneSettingsDialog({
         </Dialog>
     );
 }
-

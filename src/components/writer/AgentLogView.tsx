@@ -59,7 +59,7 @@ export function AgentLogView({ logs, className }: AgentLogViewProps) {
                                 <span>{label}</span>
                                 <span className="font-mono opacity-70">{formatTime(log.timestamp)}</span>
                             </div>
-                            <div className="p-3 whitespace-pre-wrap font-mono text-xs leading-relaxed opacity-90">
+                            <div className="p-3 whitespace-pre-wrap break-words font-mono text-xs leading-relaxed opacity-90">
                                 {log.content}
                             </div>
                         </div>
